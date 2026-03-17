@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vamanit Calendar</string>
+    <string name="sign_in_tagline">Your schedule, anywhere</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_in_microsoft">Sign in with Microsoft</string>
+    <string name="upcoming_events">Upcoming Events</string>
+    <string name="no_events">No upcoming events</string>
+    <string name="license_note">© Vamanit® — Open source under MIT License</string>
+</resources>
