@@ -8,17 +8,35 @@
     android:keepScreenOn="true">
 
     <!-- Vamanit logo — top left -->
-    <ImageView
+    <LinearLayout
         android:id="@+id/iv_logo"
-        android:layout_width="140dp"
-        android:layout_height="48dp"
-        android:src="@drawable/vamanit_logo"
-        android:contentDescription="Vamanit"
-        android:scaleType="fitStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_marginStart="24dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="18dp"
+            android:src="@drawable/vamanit_arch"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="vamanit®"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:fontFamily="serif"
+            android:letterSpacing="0.05" />
+
+    </LinearLayout>
 
     <!-- Live clock — top center -->
     <TextView

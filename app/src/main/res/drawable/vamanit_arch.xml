@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vamanit® red arch mark — replace with real PNG asset when available -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp"
+    android:height="40dp"
+    android:viewportWidth="80"
+    android:viewportHeight="40">
+
+    <!-- Outer arch ring (vamanit red) -->
+    <path
+        android:fillColor="#8B1A1A"
+        android:pathData="
+            M4,38
+            C4,14 76,14 76,38
+            L64,38
+            C64,24 16,24 16,38
+            Z" />
+
+</vector>

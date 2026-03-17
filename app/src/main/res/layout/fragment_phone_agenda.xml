@@ -18,11 +18,21 @@
         android:elevation="4dp">
 
         <ImageView
-            android:layout_width="100dp"
-            android:layout_height="36dp"
-            android:src="@drawable/vamanit_logo"
-            android:contentDescription="Vamanit"
-            android:scaleType="fitStart" />
+            android:layout_width="28dp"
+            android:layout_height="14dp"
+            android:src="@drawable/vamanit_arch"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="vamanit®"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:fontFamily="serif"
+            android:letterSpacing="0.05" />
 
         <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
 
