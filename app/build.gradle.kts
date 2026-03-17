@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.vamanit.calendar"
-        minSdk = 23
+        minSdk = 26  // azure-core (MS Graph SDK) requires API 26+
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
@@ -54,7 +54,10 @@ android {
             "META-INF/LICENSE.txt",
             "META-INF/NOTICE",
             "META-INF/NOTICE.txt",
-            "META-INF/*.kotlin_module"
+            "META-INF/*.kotlin_module",
+            "META-INF/INDEX.LIST",
+            "META-INF/LICENSE.md",
+            "META-INF/NOTICE.md"
         )
     }
 }
@@ -75,6 +78,7 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.swiperefreshlayout)
     implementation(libs.cardview)
+    implementation(libs.material)
 
     // Hilt DI
     implementation(libs.hilt.android)
@@ -101,7 +105,6 @@ dependencies {
     implementation(libs.msal) {
         exclude(group = "com.microsoft.device.display")
     }
-    implementation(libs.msgraph.sdk)
 
     // Networking + Utils
     implementation(libs.okhttp)
