@@ -1,14 +1,12 @@
 package com.vamanit.calendar.data.remote
 
-import com.microsoft.graph.models.DateTimeTimeZone
-import com.microsoft.graph.models.Event
-import com.microsoft.graph.requests.GraphServiceClient
-import com.microsoft.graph.requests.EventCollectionPage
-import com.vamanit.calendar.auth.MicrosoftAuthProvider
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.vamanit.calendar.data.model.CalendarEvent
 import com.vamanit.calendar.data.model.CalendarSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import timber.log.Timber
 import java.time.ZoneId
@@ -19,77 +17,72 @@ import javax.inject.Singleton
 
 @Singleton
 class MicrosoftCalendarDataSource @Inject constructor(
-    private val authProvider: MicrosoftAuthProvider
+    private val httpClient: OkHttpClient,
+    private val gson: Gson
 ) {
-    private fun buildClient(token: String): GraphServiceClient<Request> {
-        val authProvider = com.microsoft.graph.authentication.IAuthenticationProvider { request ->
-            request.addHeader("Authorization", "Bearer $token")
-        }
-        return GraphServiceClient.builder()
-            .authenticationProvider(authProvider)
-            .buildClient()
+    companion object {
+        private const val GRAPH_BASE = "https://graph.microsoft.com/v1.0"
+        private val ISO_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+        private val PARSE_FMT = DateTimeFormatter.ofPattern(
+            "yyyy-MM-dd'T'HH:mm:ss[.SSSSSSS][.SSS][.SS][.S]"
+        )
     }
 
     suspend fun fetchEvents(token: String, daysAhead: Int = 14): List<CalendarEvent> =
         withContext(Dispatchers.IO) {
-            val client = buildClient(token)
             val now = ZonedDateTime.now()
-            val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-            val start = now.format(fmt)
-            val end = now.plusDays(daysAhead.toLong()).format(fmt)
+            val startDateTime = now.format(ISO_FMT)
+            val endDateTime = now.plusDays(daysAhead.toLong()).format(ISO_FMT)
+
+            val url = "$GRAPH_BASE/me/calendarView" +
+                "?startDateTime=$startDateTime" +
+                "&endDateTime=$endDateTime" +
+                "&\$top=100" +
+                "&\$select=id,subject,start,end,location,bodyPreview,organizer,isAllDay" +
+                "&\$orderby=start/dateTime"
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("Authorization", "Bearer $token")
+                .addHeader("Prefer", "outlook.timezone=\"UTC\"")
+                .build()
 
             val events = mutableListOf<CalendarEvent>()
             runCatching {
-                var page: EventCollectionPage? = client.me()
-                    .calendarView()
-                    .buildRequest(
-                        listOf(
-                            com.microsoft.graph.options.QueryOption("startDateTime", start),
-                            com.microsoft.graph.options.QueryOption("endDateTime", end),
-                            com.microsoft.graph.options.QueryOption("\$top", "100"),
-                            com.microsoft.graph.options.QueryOption(
-                                "\$select",
-                                "id,subject,start,end,location,bodyPreview,organizer,isAllDay,categories"
-                            )
-                        )
-                    )
-                    .get()
-
-                while (page != null) {
-                    page.currentPage.forEach { event ->
-                        mapEvent(event)?.let { events.add(it) }
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        Timber.e("Graph API error: ${response.code}")
+                        return@withContext emptyList<CalendarEvent>()
                     }
-                    page = page.nextPage?.buildRequest()?.get()
+                    val body = response.body?.string() ?: return@withContext emptyList<CalendarEvent>()
+                    val json = gson.fromJson(body, JsonObject::class.java)
+                    val value = json.getAsJsonArray("value") ?: return@withContext emptyList<CalendarEvent>()
+                    value.forEach { elem -> mapEvent(elem.asJsonObject)?.let { events.add(it) } }
                 }
-            }.onFailure { Timber.e(it, "Microsoft calendar fetch failed") }
-
-            events.sortedBy { it.startTime }
+            }.onFailure { Timber.e(it, "Microsoft Calendar fetch failed") }
+            events
         }
 
-    private fun mapEvent(event: Event): CalendarEvent? {
-        val title = event.subject ?: return null
-        val start = event.start?.toZdt() ?: return null
-        val end = event.end?.toZdt() ?: start.plusHours(1)
+    private fun mapEvent(obj: JsonObject): CalendarEvent? {
+        val id = obj.get("id")?.asString ?: return null
+        val title = obj.get("subject")?.asString ?: return null
+        val startObj = obj.getAsJsonObject("start") ?: return null
+        val endObj = obj.getAsJsonObject("end") ?: return null
+        val tz = ZoneId.of(startObj.get("timeZone")?.asString ?: "UTC")
+        val start = parseGraphDateTime(startObj.get("dateTime")?.asString ?: return null, tz) ?: return null
+        val end = parseGraphDateTime(endObj.get("dateTime")?.asString ?: return null, tz) ?: start.plusHours(1)
         return CalendarEvent(
-            id = event.id ?: return null,
-            title = title,
-            startTime = start,
-            endTime = end,
-            location = event.location?.displayName,
-            description = event.bodyPreview,
-            source = CalendarSource.MICROSOFT,
-            colorHex = null, // Graph API doesn't expose calendar color per-event easily
-            isAllDay = event.isAllDay == true,
-            organizer = event.organizer?.emailAddress?.name,
+            id = id, title = title, startTime = start, endTime = end,
+            location = obj.getAsJsonObject("location")?.get("displayName")?.asString?.takeIf { it.isNotBlank() },
+            description = obj.get("bodyPreview")?.asString,
+            source = CalendarSource.MICROSOFT, colorHex = null,
+            isAllDay = obj.get("isAllDay")?.asBoolean ?: false,
+            organizer = obj.getAsJsonObject("organizer")?.getAsJsonObject("emailAddress")?.get("name")?.asString,
             calendarName = "Outlook"
         )
     }
 
-    private fun DateTimeTimeZone.toZdt(): ZonedDateTime? = runCatching {
-        val tz = ZoneId.of(timeZone ?: "UTC")
-        ZonedDateTime.parse(
-            dateTime,
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSSSSSS][.SSS]").withZone(tz)
-        )
+    private fun parseGraphDateTime(dt: String, tz: ZoneId): ZonedDateTime? = runCatching {
+        ZonedDateTime.parse(dt, PARSE_FMT.withZone(tz))
     }.getOrNull()
 }

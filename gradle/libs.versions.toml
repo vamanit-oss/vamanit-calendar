@@ -15,7 +15,6 @@ googleApiClient         = "2.7.0"
 googleCalendarApi       = "v3-rev20241101-2.0.0"
 googleHttpAndroid       = "1.44.2"
 msal                    = "5.4.0"
-msgraph                 = "6.2.0"
 okhttp                  = "4.12.0"
 gson                    = "2.11.0"
 timber                  = "5.0.1"
@@ -27,6 +26,7 @@ junit                   = "4.13.2"
 mockk                   = "1.13.13"
 
 [libraries]
+material                 = { group = "com.google.android.material", name = "material", version = "1.12.0" }
 # Kotlin + Coroutines (Apache 2.0)
 kotlin-stdlib            = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
 coroutines-android       = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
@@ -61,7 +61,6 @@ google-http-android      = { group = "com.google.http-client", name = "google-ht
 
 # Microsoft MSAL (MIT) + Graph SDK (MIT)
 msal                     = { group = "com.microsoft.identity.client", name = "msal", version.ref = "msal" }
-msgraph-sdk              = { group = "com.microsoft.graph", name = "microsoft-graph", version.ref = "msgraph" }
 
 # Networking + Serialization (Apache 2.0)
 okhttp                   = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
