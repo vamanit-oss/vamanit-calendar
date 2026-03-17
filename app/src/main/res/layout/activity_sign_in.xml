@@ -7,19 +7,37 @@
     android:background="@color/bg_dark">
 
     <!-- Vamanit Logo — centered top third -->
-    <ImageView
+    <LinearLayout
         android:id="@+id/iv_logo"
-        android:layout_width="280dp"
-        android:layout_height="100dp"
-        android:src="@drawable/vamanit_logo"
-        android:contentDescription="Vamanit logo"
-        android:scaleType="fitCenter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/tv_tagline"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintVertical_chainStyle="packed"
-        app:layout_constraintVertical_bias="0.3" />
+        app:layout_constraintVertical_bias="0.3">
+
+        <ImageView
+            android:layout_width="96dp"
+            android:layout_height="48dp"
+            android:src="@drawable/vamanit_arch"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="vamanit®"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:fontFamily="serif"
+            android:letterSpacing="0.05"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tv_tagline"
