@@ -1,0 +1,16 @@
+{
+  "client_id": "YOUR_AZURE_CLIENT_ID",
+  "authorization_user_agent": "DEFAULT",
+  "redirect_uri": "msauth://com.vamanit.calendar/{BASE64_SIGNATURE_HASH}",
+  "account_mode": "MULTIPLE",
+  "broker_redirect_uri_registered": false,
+  "authorities": [
+    {
+      "type": "AAD",
+      "audience": {
+        "type": "AzureADandPersonalMicrosoftAccount",
+        "tenant_id": "common"
+      }
+    }
+  ]
+}

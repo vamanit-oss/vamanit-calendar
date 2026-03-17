@@ -1,0 +1,82 @@
+[versions]
+kotlin                  = "2.0.21"
+agp                     = "8.7.3"
+coroutines              = "1.9.0"
+lifecycle               = "2.8.7"
+activity                = "1.9.3"
+fragment                = "1.8.5"
+recyclerview            = "1.3.2"
+workmanager             = "2.10.0"
+hilt                    = "2.52"
+hiltExt                 = "1.2.0"
+appauth                 = "0.11.1"
+googleAuthLib           = "1.23.0"
+googleApiClient         = "2.7.0"
+googleCalendarApi       = "v3-rev20241101-2.0.0"
+googleHttpAndroid       = "1.44.2"
+msal                    = "5.4.0"
+msgraph                 = "6.2.0"
+okhttp                  = "4.12.0"
+gson                    = "2.11.0"
+timber                  = "5.0.1"
+leanback                = "1.2.0"
+constraintlayout        = "2.2.1"
+swiperefresh            = "1.1.0"
+cardview                = "1.0.0"
+junit                   = "4.13.2"
+mockk                   = "1.13.13"
+
+[libraries]
+# Kotlin + Coroutines (Apache 2.0)
+kotlin-stdlib            = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
+coroutines-android       = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+coroutines-core          = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+
+# AndroidX (Apache 2.0)
+lifecycle-viewmodel      = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+lifecycle-runtime        = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+activity-ktx             = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity" }
+fragment-ktx             = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragment" }
+recyclerview             = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
+workmanager              = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workmanager" }
+leanback                 = { group = "androidx.leanback", name = "leanback", version.ref = "leanback" }
+constraintlayout         = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+swiperefreshlayout       = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefresh" }
+cardview                 = { group = "androidx.cardview", name = "cardview", version.ref = "cardview" }
+
+# Hilt DI (Apache 2.0)
+hilt-android             = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler            = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+hilt-work                = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltExt" }
+hilt-work-compiler       = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltExt" }
+
+# Google OAuth2 via AppAuth (Apache 2.0) — replaces proprietary play-services-auth
+appauth                  = { group = "net.openid", name = "appauth", version.ref = "appauth" }
+google-auth-lib          = { group = "com.google.auth", name = "google-auth-library-oauth2-http", version.ref = "googleAuthLib" }
+
+# Google Calendar API (Apache 2.0)
+google-api-client-android = { group = "com.google.api-client", name = "google-api-client-android", version.ref = "googleApiClient" }
+google-calendar-api      = { group = "com.google.apis", name = "google-api-services-calendar", version.ref = "googleCalendarApi" }
+google-http-android      = { group = "com.google.http-client", name = "google-http-client-android", version.ref = "googleHttpAndroid" }
+
+# Microsoft MSAL (MIT) + Graph SDK (MIT)
+msal                     = { group = "com.microsoft.identity.client", name = "msal", version.ref = "msal" }
+msgraph-sdk              = { group = "com.microsoft.graph", name = "microsoft-graph", version.ref = "msgraph" }
+
+# Networking + Serialization (Apache 2.0)
+okhttp                   = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+gson                     = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
+# Logging (Apache 2.0)
+timber                   = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+
+# Test
+junit                    = { group = "junit", name = "junit", version.ref = "junit" }
+mockk                    = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+coroutines-test          = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+
+[plugins]
+android-application      = { id = "com.android.application", version.ref = "agp" }
+kotlin-android           = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-kapt              = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
+hilt                     = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

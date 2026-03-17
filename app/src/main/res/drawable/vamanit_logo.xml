@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Vamanit® logo placeholder vector.
+    IMPORTANT: Replace app/src/main/res/drawable/vamanit_logo.png with the
+    actual Vamanit logo PNG (provided by design team) and remove this XML file.
+    Also replace app/src/main/res/drawable/tv_banner.png with a 320x180 px
+    banner image incorporating the Vamanit logo on a dark background.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="80dp"
+    android:viewportWidth="240"
+    android:viewportHeight="80">
+
+    <!-- Dark background pill -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M12,0 H228 A12,12 0 0 1 240,12 V68 A12,12 0 0 1 228,80 H12 A12,12 0 0 1 0,68 V12 A12,12 0 0 1 12,0 Z" />
+
+    <!-- Red arch accent (from Vamanit logo) -->
+    <path
+        android:fillColor="#8B1A1A"
+        android:pathData="M108,8 A20,20 0 0 1 132,8 L128,14 A14,14 0 0 0 112,14 Z" />
+
+    <!-- "vamanit" wordmark in white -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,28 L28,58 L34,58 L34,28 Z
+                          M36,38 L36,58 L42,58 L42,44 Q42,40 46,40 Q50,40 50,44 L50,58 L56,58 L56,44 Q56,40 60,40 Q64,40 64,44 L64,58 L70,58 L70,42 Q70,34 62,34 Q58,34 55,37 Q52,34 48,34 Q44,34 42,36 L42,34 L36,34 Z
+                          M82,34 Q74,34 74,42 L74,50 Q74,58 82,58 Q86,58 88,56 L88,58 L94,58 L94,34 L88,34 L88,36 Q86,34 82,34 Z M82,40 Q88,40 88,44 L88,48 Q88,52 82,52 Q80,52 80,48 L80,44 Q80,40 82,40 Z
+                          M108,34 L102,58 L108,58 L112,44 L116,58 L122,58 L116,34 Z
+                          M134,34 Q126,34 126,42 L126,50 Q126,58 134,58 L142,58 L142,52 L134,52 Q130,52 130,48 L142,48 L142,42 Q142,34 134,34 Z M130,42 Q130,40 134,40 Q138,40 138,42 L138,44 L130,44 Z
+                          M156,34 L150,58 L156,58 L160,44 L164,58 L170,58 L164,34 Z
+                          M176,28 L176,58 L182,58 L182,28 Z
+                          M190,30 Q188,30 188,34 Q188,38 190,38 Q192,38 192,34 Q192,30 190,30 Z M188,40 L188,58 L194,58 L194,40 Z
+                          M208,34 Q200,34 200,42 L200,50 Q200,58 208,58 Q216,58 216,50 L216,42 Q216,34 208,34 Z M208,40 Q212,40 212,44 L212,48 Q212,52 208,52 Q204,52 204,48 L204,44 Q204,40 208,40 Z" />
+
+    <!-- ® symbol -->
+    <path
+        android:fillColor="#AAAAAA"
+        android:pathData="M220,24 A5,5 0 1 1 230,24 A5,5 0 1 1 220,24 Z M222,21 L222,27 L224,27 L224,25 L225,25 L226,27 L228,27 L226.5,25 Q228,24.5 228,23 Q228,21 225.5,21 Z M224,22.5 L225.5,22.5 Q226,22.5 226,23 Q226,23.5 225.5,23.5 L224,23.5 Z" />
+</vector>

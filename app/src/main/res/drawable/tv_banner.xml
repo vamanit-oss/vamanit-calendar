@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android TV launcher banner — must render at 320x180 dp.
+    IMPORTANT: For production, replace this file with tv_banner.png (320x180 px bitmap)
+    showing the Vamanit logo on a dark background.
+    Per Android TV guidelines: landscape orientation, no alpha channel, no transparent areas.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dark navy background -->
+    <item>
+        <shape>
+            <solid android:color="#0D1117" />
+        </shape>
+    </item>
+    <!-- Red top accent stripe -->
+    <item android:bottom="160dp">
+        <shape>
+            <solid android:color="#8B1A1A" />
+        </shape>
+    </item>
+    <!-- Logo centered -->
+    <item
+        android:gravity="center"
+        android:drawable="@drawable/vamanit_logo" />
+    <!-- "Calendar" subtitle -->
+    <item
+        android:gravity="bottom|center_horizontal"
+        android:bottom="8dp">
+        <shape>
+            <solid android:color="#00000000" />
+        </shape>
+    </item>
+</layer-list>
