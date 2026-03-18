@@ -7,4 +7,9 @@
     <string name="upcoming_events">Upcoming Events</string>
     <string name="no_events">No upcoming events</string>
     <string name="license_note">© Vamanit® — Open source under MIT License</string>
+    <!-- TV Device Authorization flow strings -->
+    <string name="device_flow_visit">On another device (phone or PC), visit:</string>
+    <string name="device_flow_enter_code">Then enter this code:</string>
+    <string name="device_flow_connecting">Connecting to Google…</string>
+    <string name="device_flow_waiting">Waiting for authorization on the other device…</string>
 </resources>
