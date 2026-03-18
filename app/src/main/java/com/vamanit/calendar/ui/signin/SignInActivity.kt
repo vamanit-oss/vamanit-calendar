@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.snackbar.Snackbar
 import com.vamanit.calendar.auth.AuthState
 import com.vamanit.calendar.databinding.ActivitySignInBinding
 import com.vamanit.calendar.ui.dashboard.DashboardActivity
@@ -52,6 +53,7 @@ class SignInActivity : AppCompatActivity() {
         setupClickListeners()
         observeAuthState()
         observeDeviceFlowState()
+        observeSignInError()
     }
 
     private fun setupClickListeners() {
@@ -124,6 +126,19 @@ class SignInActivity : AppCompatActivity() {
                             binding.tvDeviceStatus.text         = state.message
                             binding.btnGoogleSignIn.isEnabled   = true
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun observeSignInError() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.signInError.collect { message ->
+                    if (message != null) {
+                        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
+                        viewModel.clearSignInError()
                     }
                 }
             }
