@@ -1,7 +1,10 @@
 package com.vamanit.calendar.ui.signin
 
+import android.app.UiModeManager
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -21,7 +24,13 @@ class SignInActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySignInBinding
     private val viewModel: SignInViewModel by viewModels()
 
-    // AppAuth result launcher for Google OAuth2
+    /** True when running on an Android TV (D-pad navigation, no touch). */
+    private val isTv by lazy {
+        (getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType ==
+            Configuration.UI_MODE_TYPE_TELEVISION
+    }
+
+    // AppAuth result launcher for Google OAuth2 — phone only
     private val googleAuthLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -42,12 +51,19 @@ class SignInActivity : AppCompatActivity() {
 
         setupClickListeners()
         observeAuthState()
+        observeDeviceFlowState()
     }
 
     private fun setupClickListeners() {
         binding.btnGoogleSignIn.setOnClickListener {
-            val intent = viewModel.googleAuthProvider.buildAuthIntent()
-            googleAuthLauncher.launch(intent)
+            if (isTv) {
+                // TV: Device Authorization Grant — displays code + URL, polls for token
+                viewModel.startGoogleDeviceFlow()
+            } else {
+                // Phone: AppAuth browser-based OAuth2
+                val intent = viewModel.googleAuthProvider.buildAuthIntent()
+                googleAuthLauncher.launch(intent)
+            }
         }
 
         binding.btnMicrosoftSignIn.setOnClickListener {
@@ -67,6 +83,47 @@ class SignInActivity : AppCompatActivity() {
                     Timber.d("Auth state in SignIn: $state")
                     if (state is AuthState.Authenticated && state.hasAnyAccount) {
                         startDashboard()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun observeDeviceFlowState() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.deviceFlowState.collect { state ->
+                    when (state) {
+                        is DeviceFlowUiState.Idle -> {
+                            binding.layoutDeviceCode.visibility = View.GONE
+                            binding.btnGoogleSignIn.isEnabled   = true
+                            binding.btnMicrosoftSignIn.isEnabled = true
+                        }
+                        is DeviceFlowUiState.Loading -> {
+                            binding.layoutDeviceCode.visibility = View.VISIBLE
+                            binding.tvUserCode.text             = ""
+                            binding.tvVerificationUrl.text      = ""
+                            binding.tvDeviceStatus.text         = getString(
+                                com.vamanit.calendar.R.string.device_flow_connecting
+                            )
+                            binding.btnGoogleSignIn.isEnabled   = false
+                        }
+                        is DeviceFlowUiState.ShowingCode -> {
+                            binding.layoutDeviceCode.visibility = View.VISIBLE
+                            binding.tvVerificationUrl.text      = state.verificationUrl
+                            binding.tvUserCode.text             = state.userCode
+                            binding.tvDeviceStatus.text         = getString(
+                                com.vamanit.calendar.R.string.device_flow_waiting
+                            )
+                            binding.btnGoogleSignIn.isEnabled   = false
+                        }
+                        is DeviceFlowUiState.Error -> {
+                            binding.layoutDeviceCode.visibility = View.VISIBLE
+                            binding.tvVerificationUrl.text      = ""
+                            binding.tvUserCode.text             = ""
+                            binding.tvDeviceStatus.text         = state.message
+                            binding.btnGoogleSignIn.isEnabled   = true
+                        }
                     }
                 }
             }

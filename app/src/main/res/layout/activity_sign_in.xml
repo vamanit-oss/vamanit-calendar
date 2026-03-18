@@ -80,6 +80,77 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!--
+        TV Device Authorization panel — GONE by default.
+        Shown when Google sign-in uses the RFC 8628 device flow on Android TV.
+        Displays the verification URL and short user code the user enters on another device.
+    -->
+    <LinearLayout
+        android:id="@+id/layout_device_code"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="24dp"
+        android:visibility="gone"
+        android:layout_marginTop="24dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        app:layout_constraintTop_toBottomOf="@id/btn_microsoft_sign_in"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/device_flow_visit"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/tv_verification_url"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="6dp"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/device_flow_enter_code"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:layout_marginTop="16dp"
+            android:gravity="center" />
+
+        <!-- User code displayed large and legible on TV -->
+        <TextView
+            android:id="@+id/tv_user_code"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.15"
+            android:layout_marginTop="4dp"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/tv_device_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:layout_marginTop="16dp"
+            android:gravity="center" />
+
+    </LinearLayout>
+
     <TextView
         android:id="@+id/tv_license"
         android:layout_width="wrap_content"
