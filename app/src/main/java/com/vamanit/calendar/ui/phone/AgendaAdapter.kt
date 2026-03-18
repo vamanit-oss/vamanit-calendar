@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.vamanit.calendar.data.model.CalendarEvent
 import com.vamanit.calendar.databinding.ItemAgendaEventBinding
 import com.vamanit.calendar.databinding.ItemAgendaHeaderBinding
+import com.vamanit.calendar.ui.detail.EventDetailActivity
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -41,6 +42,9 @@ class AgendaAdapter : ListAdapter<AgendaItem, RecyclerView.ViewHolder>(AgendaDif
     inner class EventViewHolder(private val b: ItemAgendaEventBinding) :
         RecyclerView.ViewHolder(b.root) {
         fun bind(event: CalendarEvent) {
+            b.root.setOnClickListener {
+                it.context.startActivity(EventDetailActivity.createIntent(it.context, event))
+            }
             b.tvTitle.text = event.title
             b.tvTime.text = if (event.isAllDay) "All day"
             else {

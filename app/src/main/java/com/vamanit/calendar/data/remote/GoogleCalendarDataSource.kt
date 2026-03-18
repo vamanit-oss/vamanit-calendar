@@ -79,7 +79,10 @@ class GoogleCalendarDataSource @Inject constructor(
             colorHex = event.colorId?.let { mapGoogleColor(it) } ?: calendarColor,
             isAllDay = event.start?.date != null,
             organizer = event.organizer?.displayName,
-            calendarName = calendarName
+            calendarName = calendarName,
+            attendees = event.attendees
+                ?.mapNotNull { it.displayName?.takeIf { n -> n.isNotBlank() } ?: it.email }
+                ?: emptyList()
         )
     }
 
