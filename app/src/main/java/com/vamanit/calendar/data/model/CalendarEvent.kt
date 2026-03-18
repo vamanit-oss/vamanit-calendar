@@ -13,7 +13,8 @@ data class CalendarEvent(
     val colorHex: String? = null,
     val isAllDay: Boolean = false,
     val organizer: String? = null,
-    val calendarName: String? = null
+    val calendarName: String? = null,
+    val attendees: List<String> = emptyList()
 )
 
 enum class CalendarSource(val label: String, val colorFallback: String) {

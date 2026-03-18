@@ -38,7 +38,7 @@ class MicrosoftCalendarDataSource @Inject constructor(
                 "?startDateTime=$startDateTime" +
                 "&endDateTime=$endDateTime" +
                 "&\$top=100" +
-                "&\$select=id,subject,start,end,location,bodyPreview,organizer,isAllDay" +
+                "&\$select=id,subject,start,end,location,bodyPreview,organizer,isAllDay,attendees" +
                 "&\$orderby=start/dateTime"
 
             val request = Request.Builder()
@@ -78,7 +78,11 @@ class MicrosoftCalendarDataSource @Inject constructor(
             source = CalendarSource.MICROSOFT, colorHex = null,
             isAllDay = obj.get("isAllDay")?.asBoolean ?: false,
             organizer = obj.getAsJsonObject("organizer")?.getAsJsonObject("emailAddress")?.get("name")?.asString,
-            calendarName = "Outlook"
+            calendarName = "Outlook",
+            attendees = obj.getAsJsonArray("attendees")
+                ?.mapNotNull { it.asJsonObject.getAsJsonObject("emailAddress")?.let { ea ->
+                    ea.get("name")?.asString?.takeIf { n -> n.isNotBlank() } ?: ea.get("address")?.asString
+                } } ?: emptyList()
         )
     }
 

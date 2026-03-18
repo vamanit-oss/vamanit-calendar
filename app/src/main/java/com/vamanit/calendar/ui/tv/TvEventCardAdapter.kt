@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.vamanit.calendar.data.model.CalendarEvent
 import com.vamanit.calendar.databinding.ItemTvEventCardBinding
+import com.vamanit.calendar.ui.detail.EventDetailActivity
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -20,6 +21,10 @@ class TvEventCardAdapter : ListAdapter<CalendarEvent, TvEventCardAdapter.ViewHol
         init {
             itemView.isFocusable = true
             itemView.isFocusableInTouchMode = true
+            itemView.setOnClickListener {
+                val event = getItem(bindingAdapterPosition)
+                it.context.startActivity(EventDetailActivity.createIntent(it.context, event))
+            }
             itemView.setOnFocusChangeListener { v, hasFocus ->
                 v.animate()
                     .scaleX(if (hasFocus) 1.08f else 1.0f)
