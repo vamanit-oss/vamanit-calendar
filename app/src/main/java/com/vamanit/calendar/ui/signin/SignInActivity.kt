@@ -5,7 +5,9 @@ import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.vamanit.calendar.auth.AuthState
 import com.vamanit.calendar.databinding.ActivitySignInBinding
 import com.vamanit.calendar.ui.dashboard.DashboardActivity
@@ -54,11 +56,18 @@ class SignInActivity : AppCompatActivity() {
     }
 
     private fun observeAuthState() {
+        // repeatOnLifecycle(STARTED) ensures we only act on auth state while the activity
+        // is in the foreground. Without it, startDashboard() can fire while the Microsoft
+        // auth browser is covering this activity (stopped state), which Android 10+ blocks
+        // as a background activity launch — the browser then closes back to SignInActivity,
+        // the collect re-triggers on the still-Authenticated state, causing an infinite loop.
         lifecycleScope.launch {
-            viewModel.authState.collect { state ->
-                Timber.d("Auth state in SignIn: $state")
-                if (state is AuthState.Authenticated && state.hasAnyAccount) {
-                    startDashboard()
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.authState.collect { state ->
+                    Timber.d("Auth state in SignIn: $state")
+                    if (state is AuthState.Authenticated && state.hasAnyAccount) {
+                        startDashboard()
+                    }
                 }
             }
         }

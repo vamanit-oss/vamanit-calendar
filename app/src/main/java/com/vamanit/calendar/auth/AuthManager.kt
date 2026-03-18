@@ -26,16 +26,22 @@ class AuthManager @Inject constructor(
     }
 
     fun refreshState() {
-        val googleToken = google.getAccessToken()
         scope.launch {
+            val googleToken = google.getAccessToken()
+            // acquireTokenSilent now auto-initializes MSAL, enabling silent restore on app restart
             val msToken = runCatching { microsoft.acquireTokenSilent() }.getOrNull()
-            val state = if (googleToken != null || msToken != null) {
+            val newState = if (googleToken != null || msToken != null) {
                 AuthState.Authenticated(googleToken = googleToken, microsoftToken = msToken)
             } else {
                 AuthState.Unauthenticated
             }
-            _authState.emit(state)
-            Timber.d("Auth state: $state")
+            // Never overwrite a freshly set Authenticated state (e.g. from interactive sign-in)
+            // with Unauthenticated from a racing silent-refresh that completed too late.
+            val current = _authState.value
+            if (current !is AuthState.Authenticated || newState is AuthState.Authenticated) {
+                _authState.emit(newState)
+            }
+            Timber.d("Auth refresh → $newState (current was $current)")
         }
     }
 

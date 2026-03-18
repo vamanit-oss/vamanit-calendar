@@ -33,8 +33,11 @@ class MicrosoftAuthProvider @Inject constructor(
 ) {
     companion object {
         val SCOPES = arrayOf("User.Read", "Calendars.Read", "offline_access")
+        private const val PREFS = "microsoft_auth"
+        private const val KEY_HAS_ACCOUNT = "has_account"
     }
 
+    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private var msalApp: IMultipleAccountPublicClientApplication? = null
 
     suspend fun initialize() {
@@ -66,6 +69,8 @@ class MicrosoftAuthProvider @Inject constructor(
             .withScopes(SCOPES.toList())
             .withCallback(object : AuthenticationCallback {
                 override fun onSuccess(result: IAuthenticationResult) {
+                    // Persist account flag so isSignedIn() works on next launch
+                    prefs.edit().putBoolean(KEY_HAS_ACCOUNT, true).apply()
                     cont.resume(result.accessToken)
                 }
                 override fun onError(exception: MsalException) {
@@ -79,7 +84,18 @@ class MicrosoftAuthProvider @Inject constructor(
         app.acquireToken(params)
     }
 
+    /**
+     * Attempts a silent token refresh. Auto-initializes MSAL if not yet done so this
+     * can be called from AuthManager.refreshState() on app restart.
+     */
     suspend fun acquireTokenSilent(): String? {
+        // Auto-initialize so callers don't need to call initialize() first
+        if (msalApp == null) {
+            runCatching { initialize() }.onFailure {
+                Timber.w(it, "MSAL init failed during silent refresh")
+                return null
+            }
+        }
         val app = msalApp ?: return null
         val accounts = suspendCancellableCoroutine<List<IAccount>> { cont ->
             app.getAccounts(object : IPublicClientApplication.LoadAccountsCallback {
@@ -111,10 +127,18 @@ class MicrosoftAuthProvider @Inject constructor(
         }
     }
 
-    fun isSignedIn(): Boolean = msalApp != null
+    /**
+     * Returns true if the user has previously signed in with Microsoft.
+     * Checked via a persisted flag in SharedPreferences so it works before MSAL is initialized.
+     */
+    fun isSignedIn(): Boolean = prefs.getBoolean(KEY_HAS_ACCOUNT, false)
 
     suspend fun signOut() {
-        val app = msalApp ?: return
+        val app = msalApp ?: run {
+            // Even if MSAL isn't initialized, clear the persisted flag
+            prefs.edit().putBoolean(KEY_HAS_ACCOUNT, false).apply()
+            return
+        }
         val accounts = suspendCancellableCoroutine<List<IAccount>> { cont ->
             app.getAccounts(object : IPublicClientApplication.LoadAccountsCallback {
                 override fun onTaskCompleted(result: List<IAccount>) = cont.resume(result)
@@ -129,6 +153,7 @@ class MicrosoftAuthProvider @Inject constructor(
                 })
             }
         }
+        prefs.edit().putBoolean(KEY_HAS_ACCOUNT, false).apply()
         Timber.d("Microsoft signed out")
     }
 }
