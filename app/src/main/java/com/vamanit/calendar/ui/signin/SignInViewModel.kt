@@ -1,5 +1,6 @@
 package com.vamanit.calendar.ui.signin
 
+import android.app.Activity
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -44,6 +45,10 @@ class SignInViewModel @Inject constructor(
     private val _deviceFlowState = MutableStateFlow<DeviceFlowUiState>(DeviceFlowUiState.Idle)
     val deviceFlowState: StateFlow<DeviceFlowUiState> = _deviceFlowState.asStateFlow()
 
+    /** One-shot error message to show in the UI (null = no error). */
+    private val _signInError = MutableStateFlow<String?>(null)
+    val signInError: StateFlow<String?> = _signInError.asStateFlow()
+
     private var deviceFlowJob: Job? = null
 
     fun isAlreadySignedIn(): Boolean = authManager.isAnyAccountSignedIn()
@@ -51,14 +56,17 @@ class SignInViewModel @Inject constructor(
     // ── Phone: handle AppAuth callback ───────────────────────────────────────
 
     fun handleGoogleAuthResult(resultCode: Int, data: Intent?) {
-        if (data == null) return
+        if (resultCode != Activity.RESULT_OK || data == null) return
         viewModelScope.launch {
             runCatching { googleAuthProvider.handleAuthResponse(data) }
                 .onSuccess { token ->
                     authManager.onGoogleSignedIn(token)
                     Timber.d("Google sign-in success")
                 }
-                .onFailure { Timber.e(it, "Google sign-in failed") }
+                .onFailure { e ->
+                    Timber.e(e, "Google sign-in failed")
+                    _signInError.value = "Google sign-in failed: ${e.message}"
+                }
         }
     }
 
@@ -96,20 +104,20 @@ class SignInViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     Timber.e(e, "Device token polling failed")
-                    _deviceFlowState.value = DeviceFlowUiState.Error(
-                        when (e.message) {
-                            "access_denied" -> "Sign-in was denied on the other device"
-                            "expired_token" -> "Code expired — press Sign In to try again"
-                            else            -> "Sign-in failed: ${e.message}"
-                        }
-                    )
+                    val msg = when (e.message) {
+                        "access_denied" -> "Sign-in was denied on the other device"
+                        "expired_token" -> "Code expired — press Sign In to try again"
+                        else            -> "Sign-in failed: ${e.message}"
+                    }
+                    _deviceFlowState.value = DeviceFlowUiState.Error(msg)
+                    _signInError.value = msg
                 }
         }
     }
 
     // ── Microsoft ────────────────────────────────────────────────────────────
 
-    fun signInWithMicrosoft(activity: android.app.Activity) {
+    fun signInWithMicrosoft(activity: Activity) {
         viewModelScope.launch {
             runCatching {
                 microsoftAuthProvider.initialize()
@@ -119,8 +127,15 @@ class SignInViewModel @Inject constructor(
                     authManager.onMicrosoftSignedIn(token)
                     Timber.d("Microsoft sign-in success")
                 }
-                .onFailure { Timber.e(it, "Microsoft sign-in failed") }
+                .onFailure { e ->
+                    Timber.e(e, "Microsoft sign-in failed")
+                    _signInError.value = "Microsoft sign-in failed: ${e.message}"
+                }
         }
+    }
+
+    fun clearSignInError() {
+        _signInError.value = null
     }
 
     fun signOut() {
