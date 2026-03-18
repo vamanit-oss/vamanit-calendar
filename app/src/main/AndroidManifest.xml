@@ -68,9 +68,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Google OAuth redirect: com.vamanit.calendar:/oauth2redirect -->
+                <!-- Google OAuth redirect — reverse of Android OAuth client ID -->
                 <data
-                    android:scheme="com.vamanit.calendar"
+                    android:scheme="com.googleusercontent.apps.534654568144-s4letgksn2dm0f8mfjl5ilio4slci4qs"
                     android:host="oauth2redirect" />
             </intent-filter>
         </activity>

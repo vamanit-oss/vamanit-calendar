@@ -50,15 +50,17 @@ class GoogleAuthProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        /** Desktop app OAuth client — phone AppAuth redirect flow */
+        /** Android OAuth client — phone AppAuth redirect flow (package + SHA-1 validated) */
         const val PHONE_CLIENT_ID =
-            "534654568144-qbbo6knmoqo3uqga35e0ipsq92d7dskl.apps.googleusercontent.com"
+            "534654568144-s4letgksn2dm0f8mfjl5ilio4slci4qs.apps.googleusercontent.com"
 
         /** TVs and Limited Input devices OAuth client — TV device flow */
         const val TV_CLIENT_ID =
             "534654568144-r4ljh9had1sr3d6e5fdgvpahst0ipglp.apps.googleusercontent.com"
 
-        const val REDIRECT_URI = "com.vamanit.calendar:/oauth2redirect"
+        // Android-type clients use the reverse client ID as the redirect scheme
+        const val REDIRECT_URI =
+            "com.googleusercontent.apps.534654568144-s4letgksn2dm0f8mfjl5ilio4slci4qs:/oauth2redirect"
 
         val SCOPES = listOf(
             "openid",
