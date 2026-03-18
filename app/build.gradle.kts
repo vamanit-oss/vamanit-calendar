@@ -19,7 +19,7 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
+            // No suffix — keeps package = com.vamanit.calendar so MSAL redirect URI matches Azure
             isDebuggable = true
         }
         release {

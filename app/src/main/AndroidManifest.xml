@@ -75,10 +75,7 @@
             </intent-filter>
         </activity>
 
-        <!--
-            MSAL redirect URI handler for Microsoft auth.
-            Replace {BASE64_SIGNATURE_HASH} with your keystore hash.
-        -->
+        <!-- MSAL redirect URI handler for Microsoft auth (debug keystore SHA-1 base64) -->
         <activity
             android:name="com.microsoft.identity.client.BrowserTabActivity"
             android:exported="true">
@@ -89,7 +86,7 @@
                 <data
                     android:scheme="msauth"
                     android:host="com.vamanit.calendar"
-                    android:path="/{BASE64_SIGNATURE_HASH}" />
+                    android:path="/RwD+B3WBhHQoDk59NqvfGvyHnUs=" />
             </intent-filter>
         </activity>
 
