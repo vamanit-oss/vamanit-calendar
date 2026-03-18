@@ -3,6 +3,7 @@ package com.vamanit.calendar.auth
 import android.app.Activity
 import android.content.Context
 import com.microsoft.identity.client.*
+import com.microsoft.identity.client.exception.MsalDeclinedScopeException
 import com.microsoft.identity.client.exception.MsalException
 import com.vamanit.calendar.R
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -105,26 +106,41 @@ class MicrosoftAuthProvider @Inject constructor(
         }
         val account = accounts.firstOrNull() ?: return null
         return try {
-            suspendCancellableCoroutine { cont ->
-                val params = AcquireTokenSilentParameters.Builder()
-                    .forAccount(account)
-                    .fromAuthority(account.authority)
-                    .withScopes(SCOPES.toList())
-                    .withCallback(object : SilentAuthenticationCallback {
-                        override fun onSuccess(result: IAuthenticationResult) {
-                            cont.resume(result.accessToken)
-                        }
-                        override fun onError(exception: MsalException) {
-                            cont.resumeWithException(exception)
-                        }
-                    })
-                    .build()
-                app.acquireTokenSilentAsync(params)
-            }
+            silentWithScopes(app, account, SCOPES.toList())
+        } catch (e: MsalDeclinedScopeException) {
+            // AAD returns offline_access implicitly (as a refresh token) but omits it from
+            // the scope list, causing MSAL 5.x to throw MsalDeclinedScopeException.
+            // If the required scopes (User.Read, Calendars.Read) were granted, retry using
+            // only the granted scopes so we get a valid access token.
+            val granted = e.grantedScopes
+            Timber.w("Silent refresh: offline_access not in scope response (implicit grant); retrying with granted scopes: $granted")
+            if (granted.isNullOrEmpty()) null
+            else runCatching { silentWithScopes(app, account, granted) }.getOrNull()
         } catch (e: Exception) {
             Timber.w(e, "Silent token refresh failed")
             null
         }
+    }
+
+    private suspend fun silentWithScopes(
+        app: IMultipleAccountPublicClientApplication,
+        account: IAccount,
+        scopes: List<String>
+    ): String? = suspendCancellableCoroutine { cont ->
+        val params = AcquireTokenSilentParameters.Builder()
+            .forAccount(account)
+            .fromAuthority(account.authority)
+            .withScopes(scopes)
+            .withCallback(object : SilentAuthenticationCallback {
+                override fun onSuccess(result: IAuthenticationResult) {
+                    cont.resume(result.accessToken)
+                }
+                override fun onError(exception: MsalException) {
+                    cont.resumeWithException(exception)
+                }
+            })
+            .build()
+        app.acquireTokenSilentAsync(params)
     }
 
     /**
