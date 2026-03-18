@@ -1,7 +1,7 @@
 {
-  "client_id": "YOUR_AZURE_CLIENT_ID",
+  "client_id": "55e73e24-1390-4ea5-bf95-d7927dd8ec42",
   "authorization_user_agent": "DEFAULT",
-  "redirect_uri": "msauth://com.vamanit.calendar/{BASE64_SIGNATURE_HASH}",
+  "redirect_uri": "msauth://com.vamanit.calendar/RwD+B3WBhHQoDk59NqvfGvyHnUs=",
   "account_mode": "MULTIPLE",
   "broker_redirect_uri_registered": false,
   "authorities": [

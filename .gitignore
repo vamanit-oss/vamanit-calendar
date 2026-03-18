@@ -32,3 +32,15 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Android SDK / emulator binaries (local dev tools, not part of source)
+emulator/
+system-images/
+licenses/
+*.img
+*.apk
+build/
+.gradle/
+local.properties
+docs/node_modules/
+docs/package-lock.json
