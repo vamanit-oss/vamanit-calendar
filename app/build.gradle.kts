@@ -13,8 +13,8 @@ android {
         applicationId = "com.vamanit.calendar"
         minSdk = 26  // azure-core (MS Graph SDK) requires API 26+
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     buildTypes {
@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.runtime)
     implementation(libs.activity.ktx)
+    implementation(libs.core.ktx)
     implementation(libs.fragment.ktx)
     implementation(libs.recyclerview)
     implementation(libs.workmanager)
