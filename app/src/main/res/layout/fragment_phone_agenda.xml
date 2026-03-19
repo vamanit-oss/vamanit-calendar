@@ -20,7 +20,7 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="14dp"
-            android:src="@drawable/vamanit_arch"
+            android:src="@drawable/thinkcloud_logo"
             android:contentDescription="@null"
             android:scaleType="fitCenter"
             android:layout_marginEnd="6dp" />
