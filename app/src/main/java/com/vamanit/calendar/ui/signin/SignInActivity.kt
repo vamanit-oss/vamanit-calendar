@@ -5,9 +5,13 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -39,6 +43,7 @@ class SignInActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         // Skip sign-in if already authenticated
@@ -49,6 +54,18 @@ class SignInActivity : AppCompatActivity() {
 
         binding = ActivitySignInBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Apply window insets so content doesn't draw behind system bars
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(
+                left = insets.left,
+                top = insets.top,
+                right = insets.right,
+                bottom = insets.bottom
+            )
+            WindowInsetsCompat.CONSUMED
+        }
 
         setupClickListeners()
         observeAuthState()
