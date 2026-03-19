@@ -25,6 +25,7 @@ swiperefresh            = "1.1.0"
 cardview                = "1.0.0"
 junit                   = "4.13.2"
 mockk                   = "1.13.13"
+playIntegrity           = "1.4.0"
 
 [libraries]
 material                 = { group = "com.google.android.material", name = "material", version = "1.12.0" }
@@ -70,6 +71,9 @@ gson                     = { group = "com.google.code.gson", name = "gson", vers
 
 # Logging (Apache 2.0)
 timber                   = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+
+# Play Integrity API (Android Software Development Kit License)
+play-integrity           = { group = "com.google.android.play", name = "integrity", version.ref = "playIntegrity" }
 
 # Test
 junit                    = { group = "junit", name = "junit", version.ref = "junit" }
