@@ -4,7 +4,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import com.vamanit.calendar.data.model.CalendarSource
 import com.vamanit.calendar.databinding.ActivityEventDetailBinding
 import java.time.LocalDate
@@ -16,9 +20,22 @@ class EventDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityEventDetailBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         binding = ActivityEventDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Apply window insets so content doesn't draw behind system bars
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(
+                left = insets.left,
+                top = insets.top,
+                right = insets.right,
+                bottom = insets.bottom
+            )
+            WindowInsetsCompat.CONSUMED
+        }
 
         binding.btnBack.setOnClickListener { finish() }
 
