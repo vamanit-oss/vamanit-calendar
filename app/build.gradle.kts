@@ -9,6 +9,15 @@ android {
     namespace = "com.vamanit.calendar"
     compileSdk = 35
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../thinkcloud-upload.jks")
+            storePassword = "thinkcloud2026"
+            keyAlias = "thinkcloud"
+            keyPassword = "thinkcloud2026"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.vamanit.calendar"
         minSdk = 26  // azure-core (MS Graph SDK) requires API 26+
@@ -25,6 +34,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -111,6 +121,9 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.gson)
     implementation(libs.timber)
+
+    // Play Integrity API — device / app attestation
+    implementation(libs.play.integrity)
 
     // Tests
     testImplementation(libs.junit)
