@@ -18,6 +18,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.snackbar.Snackbar
 import com.vamanit.calendar.auth.AuthState
 import com.vamanit.calendar.databinding.ActivitySignInBinding
+import com.vamanit.calendar.security.IntegrityHelper
 import com.vamanit.calendar.ui.dashboard.DashboardActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -75,19 +76,65 @@ class SignInActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.btnGoogleSignIn.setOnClickListener {
-            if (isTv) {
-                // TV: Device Authorization Grant — displays code + URL, polls for token
-                viewModel.startGoogleDeviceFlow()
-            } else {
-                // Phone: AppAuth browser-based OAuth2
-                val intent = viewModel.googleAuthProvider.buildAuthIntent()
-                googleAuthLauncher.launch(intent)
+            // Run Play Integrity check before initiating the OAuth flow.
+            // Client-only mode: we always proceed regardless of verdict.
+            runWithIntegrityCheck(action = "google_sign_in") {
+                if (isTv) {
+                    // TV: Device Authorization Grant — displays code + URL, polls for token
+                    viewModel.startGoogleDeviceFlow()
+                } else {
+                    // Phone: AppAuth browser-based OAuth2
+                    val intent = viewModel.googleAuthProvider.buildAuthIntent()
+                    googleAuthLauncher.launch(intent)
+                }
             }
         }
 
         binding.btnMicrosoftSignIn.setOnClickListener {
-            viewModel.signInWithMicrosoft(this)
+            // Run Play Integrity check before initiating the MSAL flow.
+            runWithIntegrityCheck(action = "microsoft_sign_in") {
+                viewModel.signInWithMicrosoft(this)
+            }
         }
+    }
+
+    /**
+     * Runs a Play Integrity check, then always calls [proceed].
+     *
+     * While the check is in flight both sign-in buttons are disabled to prevent
+     * double-taps.  A Snackbar warning is shown when the verdict is non-ideal,
+     * but we never block the user — server-side enforcement can be added later.
+     */
+    private fun runWithIntegrityCheck(action: String, proceed: () -> Unit) {
+        lifecycleScope.launch {
+            setSignInButtonsEnabled(false)
+
+            when (val result = IntegrityHelper.check(applicationContext, action)) {
+                is IntegrityHelper.IntegrityResult.Pass -> {
+                    Timber.d("IntegrityHelper [$action] check passed — proceeding")
+                }
+                is IntegrityHelper.IntegrityResult.Warn -> {
+                    Timber.w("IntegrityHelper [$action] check warned: ${result.reasons}")
+                    Snackbar.make(
+                        binding.root,
+                        "Device security check: ${result.reasons.joinToString()}",
+                        Snackbar.LENGTH_SHORT
+                    ).show()
+                }
+                is IntegrityHelper.IntegrityResult.Error -> {
+                    // API unavailable (no network, Play Services missing, etc.) — proceed anyway
+                    Timber.e(result.cause, "IntegrityHelper [$action] check error — proceeding anyway")
+                }
+            }
+
+            setSignInButtonsEnabled(true)
+            proceed()
+        }
+    }
+
+    private fun setSignInButtonsEnabled(enabled: Boolean) {
+        binding.btnGoogleSignIn.isEnabled    = enabled
+        binding.btnMicrosoftSignIn.isEnabled = enabled
     }
 
     private fun observeAuthState() {
