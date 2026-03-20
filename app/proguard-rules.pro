@@ -39,3 +39,17 @@
 # Hilt (Apache 2.0)
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
+
+# Nimbus JOSE / MSAL optional tink+findbugs deps (not bundled at runtime)
+-dontwarn com.google.crypto.tink.**
+-dontwarn edu.umd.cs.findbugs.**
+-dontwarn com.nimbusds.jose.crypto.Ed25519**
+-dontwarn com.nimbusds.jose.crypto.X25519**
+-dontwarn com.nimbusds.jose.crypto.impl.XC20P
+-dontwarn com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator
+-dontwarn com.nimbusds.jose.jwk.OctetKeyPair
+-dontwarn com.yubico.**
+
+# Play Integrity (Google)
+-keep class com.google.android.play.core.integrity.** { *; }
+-dontwarn com.google.android.play.core.integrity.**
