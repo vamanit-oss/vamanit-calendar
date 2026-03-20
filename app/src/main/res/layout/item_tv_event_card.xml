@@ -1,84 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Compact event card for TV right-page list — light notebook theme -->
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="300dp"
-    android:layout_height="180dp"
-    android:layout_margin="8dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
     android:focusable="true"
     android:focusableInTouchMode="true"
-    app:cardBackgroundColor="@color/card_bg"
+    app:cardBackgroundColor="#FFFFFF"
     app:cardCornerRadius="8dp"
-    app:cardElevation="4dp">
+    app:cardElevation="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <!-- Left color strip matching calendar color -->
+        <!-- Left colour strip -->
         <View
             android:id="@+id/view_color_strip"
-            android:layout_width="6dp"
+            android:layout_width="5dp"
             android:layout_height="match_parent"
-            android:background="@color/google_blue" />
+            android:background="#2E75B6" />
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
 
+            <!-- Source label -->
             <TextView
                 android:id="@+id/tv_source"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Google"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
                 android:textAllCaps="true"
                 android:letterSpacing="0.08" />
 
+            <!-- Event title -->
             <TextView
                 android:id="@+id/tv_title"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
+                android:layout_height="wrap_content"
                 android:text="Event Title"
-                android:textColor="@color/text_primary"
-                android:textSize="20sp"
-                android:maxLines="2"
-                android:ellipsize="end"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:id="@+id/tv_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Today 09:00–10:00"
-                android:textColor="@color/accent"
-                android:textSize="14sp"
-                android:layout_marginTop="8dp" />
-
-            <TextView
-                android:id="@+id/tv_location"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text=""
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
+                android:textColor="#1E293B"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:id="@+id/tv_calendar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=""
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
                 android:layout_marginTop="2dp" />
+
+            <!-- Time + location row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="3dp">
+
+                <TextView
+                    android:id="@+id/tv_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="09:00–10:00"
+                    android:textColor="#2E75B6"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:id="@+id/tv_location"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:text=""
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/tv_calendar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="#CBD5E1"
+                    android:textSize="10sp"
+                    android:maxLines="1" />
+
+            </LinearLayout>
+
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>
