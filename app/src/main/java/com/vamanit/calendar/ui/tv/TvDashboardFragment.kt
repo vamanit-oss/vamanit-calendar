@@ -59,6 +59,11 @@ class TvDashboardFragment : Fragment() {
         binding.cardNextMeeting.isFocusable = true
         binding.cardNextMeeting.isClickable = true
 
+        // Exit button — lets users quit the app from their TV remote
+        binding.btnExit.setOnClickListener {
+            requireActivity().finishAffinity()
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.events.collect { events ->
