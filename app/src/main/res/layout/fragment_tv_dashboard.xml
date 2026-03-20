@@ -88,9 +88,9 @@
         <View android:layout_width="match_parent" android:layout_height="1dp"
             android:background="#EEE9E0" android:layout_marginBottom="18dp"/>
 
-        <!-- Calendar source badges — bottom -->
+        <!-- Calendar source badges + exit button — bottom row -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
@@ -111,6 +111,27 @@
                 android:text="● Microsoft"
                 android:textColor="#00A4EF"
                 android:textSize="13sp" />
+
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+
+            <!-- Exit button — focusable for TV remote -->
+            <TextView
+                android:id="@+id/btn_exit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✕ EXIT"
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.08"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:background="?attr/selectableItemBackground"
+                android:nextFocusUp="@id/tv_ms_indicator" />
 
         </LinearLayout>
 
