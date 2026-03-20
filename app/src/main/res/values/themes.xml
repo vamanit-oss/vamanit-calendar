@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.VamanitCalendar" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/vamanit_red</item>
-        <item name="colorPrimaryVariant">@color/vamanit_red</item>
-        <item name="colorOnPrimary">@color/text_primary</item>
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorPrimaryVariant">@color/accent</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
         <item name="colorSecondary">@color/accent</item>
         <item name="android:windowBackground">@color/bg_dark</item>
         <!-- statusBarColor and navigationBarColor removed — deprecated on API 35+.

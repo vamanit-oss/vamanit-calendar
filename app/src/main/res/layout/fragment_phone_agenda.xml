@@ -1,48 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Phone Agenda — notebook aesthetic, consistent with sign-in + event detail
+    White page, blue top accent bar, THINKcloud header, ruling line, white cards
+-->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/bg_dark">
+    android:background="#FFFFFE">
 
-    <!-- Header bar with Vamanit logo -->
+    <!-- Top accent bar -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:background="@color/accent" />
+
+    <!-- Header: THINKcloud logo + calendar source badges -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
-        android:background="@color/card_bg"
+        android:background="#FFFFFE"
         android:gravity="center_vertical"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:elevation="4dp">
+        android:elevation="2dp">
 
         <ImageView
-            android:layout_width="28dp"
-            android:layout_height="14dp"
+            android:layout_width="100dp"
+            android:layout_height="40dp"
             android:src="@drawable/thinkcloud_logo"
             android:contentDescription="@null"
-            android:scaleType="fitCenter"
-            android:layout_marginEnd="6dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="vamanit®"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:fontFamily="serif"
-            android:letterSpacing="0.05" />
+            android:scaleType="fitStart" />
 
         <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            android:text="● Google"
+            android:textColor="#4285F4"
+            android:textSize="12sp"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="● Microsoft"
+            android:textColor="#00A4EF"
+            android:textSize="12sp" />
+
     </LinearLayout>
+
+    <!-- Ruling line below header -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#EEE9E0" />
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
