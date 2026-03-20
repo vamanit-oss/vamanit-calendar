@@ -1,20 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Android TV launcher banner — renders at 320×180 dp.
-    Replace with tv_banner.png (320×180 px) for production.
-    Per Android TV guidelines: landscape, no alpha.
+    Android TV launcher banner — 320×180 dp, landscape, no alpha.
+    White notebook aesthetic consistent with the TV dashboard.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Dark navy background -->
+    <!-- White background -->
     <item>
         <shape>
-            <solid android:color="#0D1117" />
+            <solid android:color="#FFFFFE" />
         </shape>
     </item>
-    <!-- Arch mark (centred) -->
+    <!-- Blue top accent bar -->
+    <item
+        android:top="0dp"
+        android:bottom="172dp">
+        <shape>
+            <solid android:color="#2E75B6" />
+        </shape>
+    </item>
+    <!-- THINKcloud logo centred -->
     <item
         android:gravity="center"
-        android:width="80dp"
-        android:height="40dp"
-        android:drawable="@drawable/vamanit_arch" />
+        android:width="200dp"
+        android:height="80dp"
+        android:drawable="@drawable/thinkcloud_logo" />
 </layer-list>
