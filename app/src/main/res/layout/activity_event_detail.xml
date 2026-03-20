@@ -51,14 +51,24 @@
 
                     <TextView
                         android:id="@+id/tv_source_label"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginStart="12dp"
                         android:text="Google"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
                         android:textAllCaps="true"
                         android:letterSpacing="0.08" />
+
+                    <ImageView
+                        android:id="@+id/iv_vamanit_logo"
+                        android:layout_width="110dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/thinkcloud_logo"
+                        android:contentDescription="THINKcloud"
+                        android:alpha="0.80"
+                        android:scaleType="fitEnd" />
                 </LinearLayout>
 
                 <!-- Event title -->
@@ -184,25 +194,6 @@
                 android:textColor="@color/text_primary"
                 android:textSize="15sp"
                 android:lineSpacingMultiplier="1.5" />
-
-            <!-- Vamanit branding footer -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="36dp"
-                android:layout_marginBottom="20dp"
-                android:background="@color/card_bg" />
-
-            <ImageView
-                android:id="@+id/iv_vamanit_logo"
-                android:layout_width="120dp"
-                android:layout_height="40dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="8dp"
-                android:src="@drawable/vamanit_logo"
-                android:contentDescription="Vamanit"
-                android:alpha="0.55"
-                android:scaleType="fitCenter" />
 
         </LinearLayout>
     </LinearLayout>
