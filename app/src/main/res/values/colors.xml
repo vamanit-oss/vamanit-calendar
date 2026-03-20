@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark">#0D1117</color>
-    <color name="card_bg">#161B22</color>
-    <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#8B949E</color>
-    <color name="accent">#58A6FF</color>
+    <color name="bg_dark">#FFFFFE</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="text_primary">#1E293B</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="accent">#2E75B6</color>
     <color name="google_blue">#4285F4</color>
     <color name="microsoft_blue">#0078D4</color>
     <color name="vamanit_red">#8B1A1A</color>
