@@ -184,6 +184,26 @@
                 android:textColor="@color/text_primary"
                 android:textSize="15sp"
                 android:lineSpacingMultiplier="1.5" />
+
+            <!-- Vamanit branding footer -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="36dp"
+                android:layout_marginBottom="20dp"
+                android:background="@color/card_bg" />
+
+            <ImageView
+                android:id="@+id/iv_vamanit_logo"
+                android:layout_width="120dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="8dp"
+                android:src="@drawable/vamanit_logo"
+                android:contentDescription="Vamanit"
+                android:alpha="0.55"
+                android:scaleType="fitCenter" />
+
         </LinearLayout>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
