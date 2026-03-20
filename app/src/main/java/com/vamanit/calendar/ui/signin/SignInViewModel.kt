@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.microsoft.identity.client.exception.MsalDeclinedScopeException
 import com.vamanit.calendar.auth.AuthManager
 import com.vamanit.calendar.auth.AuthState
 import com.vamanit.calendar.auth.DeviceCodeResponse
@@ -148,6 +149,19 @@ class SignInViewModel @Inject constructor(
                     Timber.d("Microsoft sign-in success")
                 }
                 .onFailure { e ->
+                    if (e is MsalDeclinedScopeException) {
+                        // AAD grants offline_access implicitly as a refresh token but omits it
+                        // from the scope list, so MSAL 5.x throws MsalDeclinedScopeException.
+                        // The account IS authenticated — fall back to acquireTokenSilent()
+                        // which already handles this case correctly.
+                        Timber.w("MsalDeclinedScopeException during sign-in; retrying silently")
+                        val token = microsoftAuthProvider.acquireTokenSilent()
+                        if (token != null) {
+                            authManager.onMicrosoftSignedIn(token)
+                            Timber.d("Microsoft sign-in success (silent fallback)")
+                            return@launch
+                        }
+                    }
                     Timber.e(e, "Microsoft sign-in failed")
                     _signInError.value = "Microsoft sign-in failed: ${e.message}"
                 }

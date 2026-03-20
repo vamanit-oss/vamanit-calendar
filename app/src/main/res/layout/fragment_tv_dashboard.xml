@@ -30,32 +30,13 @@
         android:paddingBottom="28dp"
         android:elevation="6dp">
 
-        <!-- Logo row — top -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <ImageView
-                android:layout_width="90dp"
-                android:layout_height="36dp"
-                android:src="@drawable/thinkcloud_logo"
-                android:contentDescription="@null"
-                android:scaleType="fitStart" />
-
-            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="vamanit®"
-                android:textColor="#9CA3AF"
-                android:textSize="15sp"
-                android:fontFamily="serif"
-                android:letterSpacing="0.04" />
-
-        </LinearLayout>
+        <!-- Logo -->
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="52dp"
+            android:src="@drawable/thinkcloud_logo"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter" />
 
         <!-- Faint ruling lines (notebook paper effect) -->
         <View android:layout_width="match_parent" android:layout_height="1dp"
