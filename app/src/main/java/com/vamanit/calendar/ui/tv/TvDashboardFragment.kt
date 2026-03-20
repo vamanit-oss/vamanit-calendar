@@ -46,6 +46,18 @@ class TvDashboardFragment : Fragment() {
         }
 
         val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+        var currentNextEvent: com.vamanit.calendar.data.model.CalendarEvent? = null
+
+        // Make next meeting card clickable → open EventDetailActivity
+        binding.cardNextMeeting.setOnClickListener {
+            currentNextEvent?.let { event ->
+                startActivity(
+                    com.vamanit.calendar.ui.detail.EventDetailActivity.createIntent(requireContext(), event)
+                )
+            }
+        }
+        binding.cardNextMeeting.isFocusable = true
+        binding.cardNextMeeting.isClickable = true
 
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -55,6 +67,7 @@ class TvDashboardFragment : Fragment() {
                     // Split: next upcoming vs the rest
                     val nextIdx = events.indexOfFirst { !it.endTime.isBefore(now) }
                     val nextEvent = if (nextIdx >= 0) events[nextIdx] else null
+                    currentNextEvent = nextEvent
                     val remaining = if (nextIdx >= 0) events.drop(nextIdx + 1) else events
 
                     // ── Next meeting card ──
