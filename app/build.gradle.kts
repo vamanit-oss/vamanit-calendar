@@ -29,8 +29,8 @@ android {
         applicationId = "com.vamanit.calendar"
         minSdk = 26  // azure-core (MS Graph SDK) requires API 26+
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.2.1"
+        versionCode = 6
+        versionName = "1.3.0"
 
         buildConfigField("String", "PHONE_CLIENT_SECRET",
             "\"${localProps.getProperty("PHONE_CLIENT_SECRET", "")}\"")

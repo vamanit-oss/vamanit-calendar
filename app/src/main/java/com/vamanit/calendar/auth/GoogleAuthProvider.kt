@@ -50,22 +50,21 @@ data class DeviceCodeResponse(
  */
 @Singleton
 class GoogleAuthProvider @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val secretsStore: SecretsStore
 ) {
+    // Runtime secrets: prefer value saved via SetupActivity, fall back to build-time BuildConfig
+    private val phoneClientSecret: String get() = secretsStore.getPhoneClientSecret()
+    private val tvClientSecret: String    get() = secretsStore.getTvClientSecret()
+
     companion object {
         /** Desktop type OAuth client — phone AppAuth redirect flow */
         const val PHONE_CLIENT_ID =
             "534654568144-qbbo6knmoqo3uqga35e0ipsq92d7dskl.apps.googleusercontent.com"
 
-        // Injected at build time from local.properties → BuildConfig (never committed to git)
-        private val PHONE_CLIENT_SECRET get() = BuildConfig.PHONE_CLIENT_SECRET
-
         /** TVs and Limited Input devices OAuth client — TV device flow */
         const val TV_CLIENT_ID =
             "534654568144-r4ljh9had1sr3d6e5fdgvpahst0ipglp.apps.googleusercontent.com"
-
-        // Injected at build time from local.properties → BuildConfig (never committed to git)
-        private val TV_CLIENT_SECRET get() = BuildConfig.TV_CLIENT_SECRET
 
         // Desktop clients: Google automatically allows the reverse client ID as redirect scheme
         const val REDIRECT_URI =
@@ -118,7 +117,7 @@ class GoogleAuthProvider @Inject constructor(
         return suspendCancellableCoroutine { cont ->
             authService.performTokenRequest(
                 response.createTokenExchangeRequest(),
-                ClientSecretPost(PHONE_CLIENT_SECRET)
+                ClientSecretPost(phoneClientSecret)
             ) { tokenResponse, tokenException ->
                 if (tokenException != null) {
                     cont.resumeWithException(tokenException)
@@ -189,7 +188,7 @@ class GoogleAuthProvider @Inject constructor(
     private fun exchangeDeviceCode(deviceCode: String): PollResult {
         return try {
             val body = "client_id=${TV_CLIENT_ID.enc()}" +
-                "&client_secret=${TV_CLIENT_SECRET.enc()}" +
+                "&client_secret=${tvClientSecret.enc()}" +
                 "&device_code=${deviceCode.enc()}" +
                 "&grant_type=${"urn:ietf:params:oauth:grant-type:device_code".enc()}"
             val json = postForm(TOKEN_URL, body)

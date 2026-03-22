@@ -25,6 +25,12 @@
         android:theme="@style/Theme.VamanitCalendar"
         tools:targetApi="31">
 
+        <!-- ── First-run setup wizard ── -->
+        <activity
+            android:name=".ui.setup.SetupActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- ── Phone / default launcher ── -->
         <activity
             android:name=".ui.signin.SignInActivity"
