@@ -22,6 +22,7 @@ import com.vamanit.calendar.databinding.ActivitySignInBinding
 import com.vamanit.calendar.security.IntegrityHelper
 import com.vamanit.calendar.ui.dashboard.DashboardActivity
 import com.vamanit.calendar.ui.setup.SetupActivity
+import com.vamanit.calendar.ui.setup.SetupEmailHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -216,12 +217,38 @@ class SignInActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.signInError.collect { message ->
                     if (message != null) {
-                        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
+                        showSignInError(message)
                         viewModel.clearSignInError()
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Shows the sign-in error message.
+     *
+     * When the error looks like an OAuth configuration problem (invalid_client,
+     * unauthorized, access_denied) the snackbar includes an "Email Setup"
+     * action that opens the user's email app pre-filled with full cloud console
+     * setup instructions — so they can configure the OAuth clients on a desktop.
+     */
+    private fun showSignInError(message: String) {
+        val isAuthConfigError = message.contains("invalid_client",    ignoreCase = true) ||
+                                message.contains("unauthorized",      ignoreCase = true) ||
+                                message.contains("access_denied",     ignoreCase = true) ||
+                                message.contains("client",            ignoreCase = true)
+
+        val snackbar = Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG)
+
+        if (isAuthConfigError) {
+            snackbar.duration = Snackbar.LENGTH_INDEFINITE
+            snackbar.setAction("Email Setup") {
+                SetupEmailHelper.sendSetupInstructions(this)
+            }
+        }
+
+        snackbar.show()
     }
 
     private fun startDashboard() {
