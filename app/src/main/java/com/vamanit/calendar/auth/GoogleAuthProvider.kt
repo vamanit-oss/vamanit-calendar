@@ -9,7 +9,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import com.vamanit.calendar.BuildConfig
 import net.openid.appauth.*
+import net.openid.appauth.ClientSecretPost
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.OutputStreamWriter
@@ -33,7 +35,7 @@ data class DeviceCodeResponse(
  * Handles Google OAuth2 authentication.
  *
  * Phone: AppAuth browser flow (Apache 2.0 library) using a Desktop app OAuth client.
- *        Redirect URI: com.vamanit.calendar:/oauth2redirect
+ *        Redirect URI: com.googleusercontent.apps.534654568144-qbbo6knmoqo3uqga35e0ipsq92d7dskl:/oauth2redirect
  *
  * TV:    Device Authorization Grant (RFC 8628) using a "TVs and Limited Input devices"
  *        OAuth client. The TV displays a short user code + verification URL; the user
@@ -42,7 +44,8 @@ data class DeviceCodeResponse(
  * Google Cloud Console setup:
  *  1. Enable Google Calendar API
  *  2. OAuth consent screen → add scope calendar.readonly, add test users
- *  3. Phone client: type "Desktop app" → redirect com.vamanit.calendar:/oauth2redirect
+ *  3. Phone client: type "Desktop app" (534654568144-qbbo6knmoqo3uqga35e0ipsq92d7dskl) →
+ *     reverse-scheme redirect automatically allowed for Desktop clients (no registration needed)
  *  4. TV client: type "TVs and Limited Input devices" (no redirect URI needed)
  */
 @Singleton
@@ -50,17 +53,23 @@ class GoogleAuthProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        /** Android type OAuth client — phone AppAuth redirect flow (no client_secret required) */
+        /** Desktop type OAuth client — phone AppAuth redirect flow */
         const val PHONE_CLIENT_ID =
-            "534654568144-s4letgksn2dm0f8mfjl5ilio4slci4qs.apps.googleusercontent.com"
+            "534654568144-qbbo6knmoqo3uqga35e0ipsq92d7dskl.apps.googleusercontent.com"
+
+        // Injected at build time from local.properties → BuildConfig (never committed to git)
+        private val PHONE_CLIENT_SECRET get() = BuildConfig.PHONE_CLIENT_SECRET
 
         /** TVs and Limited Input devices OAuth client — TV device flow */
         const val TV_CLIENT_ID =
             "534654568144-r4ljh9had1sr3d6e5fdgvpahst0ipglp.apps.googleusercontent.com"
 
-        // Android type clients use the reverse client ID as the redirect scheme
+        // Injected at build time from local.properties → BuildConfig (never committed to git)
+        private val TV_CLIENT_SECRET get() = BuildConfig.TV_CLIENT_SECRET
+
+        // Desktop clients: Google automatically allows the reverse client ID as redirect scheme
         const val REDIRECT_URI =
-            "com.googleusercontent.apps.534654568144-s4letgksn2dm0f8mfjl5ilio4slci4qs:/oauth2redirect"
+            "com.googleusercontent.apps.534654568144-qbbo6knmoqo3uqga35e0ipsq92d7dskl:/oauth2redirect"
 
         val SCOPES = listOf(
             "openid",
@@ -108,7 +117,8 @@ class GoogleAuthProvider @Inject constructor(
 
         return suspendCancellableCoroutine { cont ->
             authService.performTokenRequest(
-                response.createTokenExchangeRequest()
+                response.createTokenExchangeRequest(),
+                ClientSecretPost(PHONE_CLIENT_SECRET)
             ) { tokenResponse, tokenException ->
                 if (tokenException != null) {
                     cont.resumeWithException(tokenException)
@@ -179,6 +189,7 @@ class GoogleAuthProvider @Inject constructor(
     private fun exchangeDeviceCode(deviceCode: String): PollResult {
         return try {
             val body = "client_id=${TV_CLIENT_ID.enc()}" +
+                "&client_secret=${TV_CLIENT_SECRET.enc()}" +
                 "&device_code=${deviceCode.enc()}" +
                 "&grant_type=${"urn:ietf:params:oauth:grant-type:device_code".enc()}"
             val json = postForm(TOKEN_URL, body)

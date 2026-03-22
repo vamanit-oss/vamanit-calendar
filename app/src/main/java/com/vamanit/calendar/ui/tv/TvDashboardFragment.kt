@@ -1,5 +1,6 @@
 package com.vamanit.calendar.ui.tv
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.*
@@ -11,6 +12,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.vamanit.calendar.databinding.FragmentTvDashboardBinding
 import com.vamanit.calendar.ui.dashboard.DashboardViewModel
+import com.vamanit.calendar.ui.signin.SignInActivity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -59,9 +61,13 @@ class TvDashboardFragment : Fragment() {
         binding.cardNextMeeting.isFocusable = true
         binding.cardNextMeeting.isClickable = true
 
-        // Exit button — lets users quit the app from their TV remote
+        // Exit button — signs out all accounts and returns to the sign-in selection screen
         binding.btnExit.setOnClickListener {
-            requireActivity().finishAffinity()
+            viewModel.signOut()
+            startActivity(
+                Intent(requireContext(), SignInActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            )
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
