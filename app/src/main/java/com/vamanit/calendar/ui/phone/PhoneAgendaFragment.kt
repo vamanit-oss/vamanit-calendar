@@ -1,5 +1,6 @@
 package com.vamanit.calendar.ui.phone
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.*
 import androidx.fragment.app.Fragment
@@ -10,6 +11,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.vamanit.calendar.databinding.FragmentPhoneAgendaBinding
 import com.vamanit.calendar.ui.dashboard.DashboardViewModel
+import com.vamanit.calendar.ui.signin.SignInActivity
 import kotlinx.coroutines.launch
 
 class PhoneAgendaFragment : Fragment() {
@@ -35,6 +37,15 @@ class PhoneAgendaFragment : Fragment() {
 
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.refresh()
+        }
+
+        // Sign out — clears all accounts and returns to sign-in selection screen
+        binding.btnSignOut.setOnClickListener {
+            viewModel.signOut()
+            startActivity(
+                Intent(requireContext(), SignInActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            )
         }
 
         viewLifecycleOwner.lifecycleScope.launch {

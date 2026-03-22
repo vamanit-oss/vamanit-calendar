@@ -2,6 +2,7 @@ package com.vamanit.calendar.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vamanit.calendar.auth.AuthManager
 import com.vamanit.calendar.data.model.CalendarEvent
 import com.vamanit.calendar.domain.usecase.GetUpcomingEventsUseCase
 import com.vamanit.calendar.domain.usecase.RefreshEventsUseCase
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     getUpcomingEvents: GetUpcomingEventsUseCase,
-    private val refreshEvents: RefreshEventsUseCase
+    private val refreshEvents: RefreshEventsUseCase,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     val events: StateFlow<List<CalendarEvent>> = getUpcomingEvents()
@@ -27,6 +29,10 @@ class DashboardViewModel @Inject constructor(
             runCatching { refreshEvents() }
                 .onFailure { Timber.e(it, "Manual refresh failed") }
         }
+    }
+
+    fun signOut() {
+        authManager.signOutAll()
     }
 
     init {

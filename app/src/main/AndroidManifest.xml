@@ -72,11 +72,11 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Google OAuth redirect — reverse of Android OAuth client ID.
+                <!-- Google OAuth redirect — reverse of Desktop OAuth client ID.
                      android:path is only evaluated when android:host is also set; omitting host
                      here (URI has no authority) means scheme-only matching is correct and sufficient. -->
                 <data
-                    android:scheme="com.googleusercontent.apps.534654568144-s4letgksn2dm0f8mfjl5ilio4slci4qs" />
+                    android:scheme="com.googleusercontent.apps.534654568144-qbbo6knmoqo3uqga35e0ipsq92d7dskl" />
             </intent-filter>
         </activity>
 

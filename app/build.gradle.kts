@@ -1,8 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt)
+}
+
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
 }
 
 android {
@@ -22,8 +29,13 @@ android {
         applicationId = "com.vamanit.calendar"
         minSdk = 26  // azure-core (MS Graph SDK) requires API 26+
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.2.0"
+        versionCode = 5
+        versionName = "1.2.1"
+
+        buildConfigField("String", "PHONE_CLIENT_SECRET",
+            "\"${localProps.getProperty("PHONE_CLIENT_SECRET", "")}\"")
+        buildConfigField("String", "TV_CLIENT_SECRET",
+            "\"${localProps.getProperty("TV_CLIENT_SECRET", "")}\"")
     }
 
     buildTypes {
