@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -18,16 +19,19 @@ import com.vamanit.calendar.databinding.ActivitySetupBinding
 import com.vamanit.calendar.ui.signin.SignInActivity
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import android.util.Patterns
 
 /**
  * First-run installation wizard.
  *
- * Displays the app's pre-configured OAuth Client IDs for both Google and
- * Microsoft, collects the Google client secrets from the user, and provides
- * step-by-step instructions for configuring each cloud console.
+ * • When secrets are already baked into the build (local.properties), the wizard
+ *   shows a "secrets already configured" banner and lets the user proceed in one tap.
+ * • For self-hosted / open-source builds without build-time secrets, the wizard
+ *   collects Google client secrets with format validation.
  *
  * Shown automatically before SignInActivity whenever [SecretsStore.isSetupDone]
- * returns false.
+ * returns false (which never happens for builds with secrets baked in — they
+ * auto-pass the check and never land here).
  */
 @AndroidEntryPoint
 class SetupActivity : AppCompatActivity() {
@@ -50,8 +54,81 @@ class SetupActivity : AppCompatActivity() {
 
         populateClientIds()
         setupCopyButtons()
-        prefillSavedSecrets()
-        setupButtons()
+        setupEmailButton()
+
+        if (secretsStore.hasBuildTimeSecrets()) {
+            // Secrets baked in — show simplified banner, hide manual entry fields
+            showBuildSecretsMode()
+        } else {
+            // Self-hosted build — show full wizard with secret entry fields
+            prefillSavedSecrets()
+            setupButtons()
+        }
+    }
+
+    // ── Build-secrets mode (one-tap continue) ────────────────────────────────
+
+    private fun showBuildSecretsMode() {
+        // Hide the manual secret entry section
+        binding.layoutSecretEntry.visibility = View.GONE
+
+        // Show the "already configured" banner
+        binding.layoutBuildSecretsBanner.visibility = View.VISIBLE
+
+        // Replace continue button label and skip without requiring input
+        binding.btnContinue.text = getString(com.vamanit.calendar.R.string.setup_continue_build)
+        binding.btnSkip.visibility = View.GONE
+
+        binding.btnContinue.setOnClickListener {
+            secretsStore.markSetupDone()
+            launchSignIn()
+        }
+    }
+
+    // ── Self-hosted mode (manual entry) ─────────────────────────────────────
+
+    private fun prefillSavedSecrets() {
+        if (secretsStore.hasRuntimeSecrets()) {
+            binding.etPhoneSecret.setText(secretsStore.getPhoneClientSecret())
+            binding.etTvSecret.setText(secretsStore.getTvClientSecret())
+        }
+    }
+
+    private fun setupButtons() {
+        binding.btnContinue.setOnClickListener {
+            val phoneSecret = binding.etPhoneSecret.text.toString().trim()
+            val tvSecret    = binding.etTvSecret.text.toString().trim()
+
+            when {
+                phoneSecret.isEmpty() || tvSecret.isEmpty() -> {
+                    showError("Enter both Google client secrets to continue.")
+                }
+                !isValidGoogleSecret(phoneSecret) -> {
+                    showError("Phone client secret looks wrong — it should start with GOCSPX-")
+                }
+                !isValidGoogleSecret(tvSecret) -> {
+                    showError("TV client secret looks wrong — it should start with GOCSPX-")
+                }
+                else -> {
+                    secretsStore.saveSecrets(phoneSecret, tvSecret)
+                    launchSignIn()
+                }
+            }
+        }
+
+        // Skip: rely on secrets baked in at build time via local.properties
+        binding.btnSkip.setOnClickListener {
+            secretsStore.markSetupDone()
+            launchSignIn()
+        }
+    }
+
+    /** Google OAuth client secrets always start with GOCSPX- (Desktop/TV types). */
+    private fun isValidGoogleSecret(secret: String): Boolean =
+        secret.startsWith("GOCSPX-") && secret.length > 10
+
+    private fun showError(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
     }
 
     // ── Populate pre-configured IDs ──────────────────────────────────────────
@@ -61,6 +138,19 @@ class SetupActivity : AppCompatActivity() {
         binding.tvTvClientIdValue.text    = GoogleAuthProvider.TV_CLIENT_ID
         binding.tvMsClientIdValue.text    = MS_CLIENT_ID
         binding.tvMsRedirectUriValue.text = MS_REDIRECT_URI
+    }
+
+    // ── Email setup instructions ─────────────────────────────────────────────
+
+    private fun setupEmailButton() {
+        binding.btnEmailInstructions.setOnClickListener {
+            val address = binding.etEmailAddress.text.toString().trim()
+            if (address.isNotEmpty() && !Patterns.EMAIL_ADDRESS.matcher(address).matches()) {
+                showError("Please enter a valid email address.")
+                return@setOnClickListener
+            }
+            SetupEmailHelper.sendSetupInstructions(this, address)
+        }
     }
 
     // ── Copy-to-clipboard buttons ────────────────────────────────────────────
@@ -77,42 +167,6 @@ class SetupActivity : AppCompatActivity() {
         }
         binding.btnCopyMsRedirect.setOnClickListener {
             copy("Microsoft Redirect URI", MS_REDIRECT_URI)
-        }
-    }
-
-    // ── Pre-fill secrets if they were already saved ──────────────────────────
-
-    private fun prefillSavedSecrets() {
-        if (secretsStore.hasRuntimeSecrets()) {
-            binding.etPhoneSecret.setText(secretsStore.getPhoneClientSecret())
-            binding.etTvSecret.setText(secretsStore.getTvClientSecret())
-        }
-    }
-
-    // ── Continue / Skip ──────────────────────────────────────────────────────
-
-    private fun setupButtons() {
-        binding.btnContinue.setOnClickListener {
-            val phoneSecret = binding.etPhoneSecret.text.toString().trim()
-            val tvSecret    = binding.etTvSecret.text.toString().trim()
-
-            if (phoneSecret.isEmpty() || tvSecret.isEmpty()) {
-                Snackbar.make(
-                    binding.root,
-                    "Enter both Google client secrets to continue.",
-                    Snackbar.LENGTH_LONG
-                ).show()
-                return@setOnClickListener
-            }
-
-            secretsStore.saveSecrets(phoneSecret, tvSecret)
-            launchSignIn()
-        }
-
-        // Skip: rely on secrets baked in at build time via local.properties
-        binding.btnSkip.setOnClickListener {
-            secretsStore.markSetupDone()
-            launchSignIn()
         }
     }
 

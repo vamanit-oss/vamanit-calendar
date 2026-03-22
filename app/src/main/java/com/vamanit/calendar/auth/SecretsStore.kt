@@ -29,8 +29,20 @@ class SecretsStore @Inject constructor(
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** True once the user has completed (or explicitly skipped) the setup screen. */
-    fun isSetupDone(): Boolean = prefs.getBoolean(KEY_SETUP_DONE, false)
+    /**
+     * True when setup should be skipped / is already complete.
+     *
+     * Auto-passes when build-time secrets are baked in (developer / CI builds with
+     * local.properties populated), so the wizard never appears for those installs.
+     * Self-hosted users without build-time secrets still see the wizard on first run.
+     */
+    fun isSetupDone(): Boolean =
+        prefs.getBoolean(KEY_SETUP_DONE, false) || hasBuildTimeSecrets()
+
+    /** True when both Google client secrets were supplied at build time via local.properties. */
+    fun hasBuildTimeSecrets(): Boolean =
+        BuildConfig.PHONE_CLIENT_SECRET.isNotBlank() &&
+        BuildConfig.TV_CLIENT_SECRET.isNotBlank()
 
     /** Mark setup complete without saving secrets (skip / already have build-time secrets). */
     fun markSetupDone() {

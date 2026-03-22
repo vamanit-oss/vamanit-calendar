@@ -7,6 +7,8 @@
     <string name="upcoming_events">Upcoming Events</string>
     <string name="no_events">No upcoming events</string>
     <string name="license_note">© Vamanit® — Open source under MIT License</string>
+    <!-- Setup wizard -->
+    <string name="setup_continue_build">Secrets Configured — Continue to Sign In</string>
     <!-- TV Device Authorization flow strings -->
     <string name="device_flow_visit">On another device (phone or PC), visit:</string>
     <string name="device_flow_enter_code">Then enter this code:</string>

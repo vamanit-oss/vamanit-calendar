@@ -211,58 +211,100 @@
 
             </LinearLayout>
 
-            <!-- ── Secret inputs ── -->
-            <TextView
+            <!-- ── "Already configured" banner — shown when build-time secrets present ── -->
+            <LinearLayout
+                android:id="@+id/layout_build_secrets_banner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:layout_marginTop="20dp"
-                android:text="Phone Client Secret  *"
-                android:textColor="@color/text_primary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:background="#F0FDF4"
+                android:padding="12dp"
+                android:visibility="gone">
 
-            <com.google.android.material.textfield.TextInputLayout
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✓ "
+                    android:textColor="#16A34A"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Google client secrets are already configured in this build. No manual entry needed."
+                    android:textColor="#15803D"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp" />
+
+            </LinearLayout>
+
+            <!-- ── Secret inputs (hidden when build-time secrets are present) ── -->
+            <LinearLayout
+                android:id="@+id/layout_secret_entry"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                android:orientation="vertical">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_phone_secret"
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="GOCSPX-…"
-                    android:inputType="textPassword"
-                    android:fontFamily="monospace"
-                    android:textSize="14sp" />
+                    android:layout_marginTop="20dp"
+                    android:text="Phone Client Secret  *"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="TV Client Secret  *"
-                android:textColor="@color/text_primary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_tv_secret"
+                <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="GOCSPX-…"
-                    android:inputType="textPassword"
-                    android:fontFamily="monospace"
-                    android:textSize="14sp" />
+                    android:layout_marginTop="4dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
-            </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_phone_secret"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="GOCSPX-…"
+                        android:inputType="textVisiblePassword"
+                        android:fontFamily="monospace"
+                        android:textSize="14sp"
+                        android:imeOptions="actionNext"
+                        android:maxLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="TV Client Secret  *"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_tv_secret"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="GOCSPX-…"
+                        android:inputType="textVisiblePassword"
+                        android:fontFamily="monospace"
+                        android:textSize="14sp"
+                        android:imeOptions="actionDone"
+                        android:maxLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
 
             <!-- ════════════════════════════════════════════════════════════
                  SECTION 2 — Microsoft Azure Portal
@@ -424,7 +466,7 @@
             </LinearLayout>
 
             <!-- ════════════════════════════════════════════════════════════
-                 Bottom action buttons
+                 Email setup instructions
                  ════════════════════════════════════════════════════════════ -->
 
             <!-- Ruling line -->
@@ -433,6 +475,95 @@
                 android:layout_height="1dp"
                 android:background="#EEE9E0"
                 android:layout_marginTop="36dp" />
+
+            <!-- Section heading -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="20dp">
+
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="20dp"
+                    android:background="@color/accent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="  Email Setup Instructions"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Not sure what to enter above? Email yourself full step-by-step instructions for configuring Google Cloud Console and Azure Portal, including all Client IDs and redirect URIs."
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:lineSpacingExtra="3dp" />
+
+            <!-- Email address row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="10dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_email_address"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="your@email.com"
+                        android:inputType="textEmailAddress"
+                        android:textSize="14sp"
+                        android:imeOptions="actionSend"
+                        android:maxLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <Button
+                    android:id="@+id/btn_email_instructions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Send"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/accent" />
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Leave blank to open your email app and choose the recipient yourself."
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontStyle="italic" />
+
+            <!-- ════════════════════════════════════════════════════════════
+                 Bottom action buttons
+                 ════════════════════════════════════════════════════════════ -->
+
+            <!-- Ruling line -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEE9E0"
+                android:layout_marginTop="28dp" />
 
             <Button
                 android:id="@+id/btn_continue"
