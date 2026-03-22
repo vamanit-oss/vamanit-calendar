@@ -17,18 +17,23 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.snackbar.Snackbar
 import com.vamanit.calendar.auth.AuthState
+import com.vamanit.calendar.auth.SecretsStore
 import com.vamanit.calendar.databinding.ActivitySignInBinding
 import com.vamanit.calendar.security.IntegrityHelper
 import com.vamanit.calendar.ui.dashboard.DashboardActivity
+import com.vamanit.calendar.ui.setup.SetupActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class SignInActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySignInBinding
     private val viewModel: SignInViewModel by viewModels()
+
+    @Inject lateinit var secretsStore: SecretsStore
 
     /** True when running on an Android TV (D-pad navigation, no touch). */
     private val isTv by lazy {
@@ -46,6 +51,16 @@ class SignInActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // First-run: show setup wizard so the user can enter OAuth secrets
+        if (!secretsStore.isSetupDone()) {
+            startActivity(
+                Intent(this, SetupActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            )
+            finish()
+            return
+        }
 
         // Skip sign-in if already authenticated
         if (viewModel.isAlreadySignedIn()) {
