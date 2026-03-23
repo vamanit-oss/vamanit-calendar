@@ -47,19 +47,23 @@ class EventDetailViewModel @Inject constructor(
                 googleResources = googleDataSource.fetchDelegatedResources()
             }.onFailure { Timber.w(it, "Google resources unavailable (not signed in?)") }
 
-            // ── Microsoft: display name fallback + managed/delegate calendars ──
+            // ── Microsoft: display name fallback + delegated calendars ──
             // Guard with isSignedIn() first — avoids touching MSAL when not signed in.
             // withTimeout ensures a stuck MSAL callback never blocks the spinner.
             var msResources = emptyList<CalendarResource>()
+            Timber.d("loadResources: microsoftSignedIn=${microsoftAuth.isSignedIn()}")
             if (microsoftAuth.isSignedIn()) {
                 runCatching {
                     withTimeout(10_000) {
-                        val token = microsoftAuth.acquireTokenSilent() ?: return@withTimeout
+                        val token = microsoftAuth.acquireTokenSilent()
+                        Timber.d("loadResources: MS token=${if (token != null) "ok" else "null"}")
+                        if (token == null) return@withTimeout
                         // Use Microsoft display name if Google didn't provide one
                         if (userName == "My Calendar") {
                             userName = microsoftDataSource.fetchUserDisplayName(token)
                         }
-                        msResources = microsoftDataSource.fetchManagedResources(token)
+                        msResources = microsoftDataSource.fetchDelegatedCalendars(token)
+                        Timber.d("loadResources: MS delegated resources=${msResources.size}")
                     }
                 }.onFailure { Timber.w(it, "Microsoft resources failed — skipping") }
             }
