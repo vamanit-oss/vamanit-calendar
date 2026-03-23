@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -41,13 +42,21 @@ class EventDetailViewModel @Inject constructor(
                 val googleResources = googleDataSource.fetchDelegatedResources()
 
                 // ── Microsoft: calendars where user is manager/delegate ──
-                // Silently skipped if not signed in or token refresh fails.
-                val msResources: List<CalendarResource> = runCatching {
-                    val token = microsoftAuth.acquireTokenSilent()
-                    if (token != null) microsoftDataSource.fetchManagedResources(token)
-                    else emptyList()
-                }.onFailure { Timber.w(it, "Microsoft managed resources failed — skipping") }
-                    .getOrDefault(emptyList())
+                // Guard with isSignedIn() first — avoids touching MSAL (which can hang
+                // on initialize()) when the user has never signed in with Microsoft.
+                // withTimeout ensures a stuck MSAL callback never blocks the spinner.
+                val msResources: List<CalendarResource> = if (!microsoftAuth.isSignedIn()) {
+                    emptyList()
+                } else {
+                    runCatching {
+                        withTimeout(10_000) {
+                            val token = microsoftAuth.acquireTokenSilent()
+                            if (token != null) microsoftDataSource.fetchManagedResources(token)
+                            else emptyList()
+                        }
+                    }.onFailure { Timber.w(it, "Microsoft managed resources failed — skipping") }
+                        .getOrDefault(emptyList())
+                }
 
                 ResourceUiState.Ready(name, googleResources + msResources)
             }.onSuccess { state ->
