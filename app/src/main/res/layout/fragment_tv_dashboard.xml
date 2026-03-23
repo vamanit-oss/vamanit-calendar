@@ -88,6 +88,30 @@
         <View android:layout_width="match_parent" android:layout_height="1dp"
             android:background="#EEE9E0" android:layout_marginBottom="18dp"/>
 
+        <!-- Calendar selector spinner — switches the meeting view -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="VIEWING"
+            android:textColor="#94A3B8"
+            android:textSize="9sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/spinner_calendar_selector"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/spinner_background"
+            android:paddingStart="12dp"
+            android:paddingEnd="4dp"
+            android:spinnerMode="dropdown"
+            android:focusable="true"
+            android:focusableInTouchMode="true" />
+
         <!-- Calendar source badges + exit button — bottom row -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -300,75 +324,6 @@
                         android:maxLines="1"
                         android:ellipsize="end" />
 
-                    <!-- ROOM picker — always visible, default = personal calendar -->
-                    <LinearLayout
-                        android:id="@+id/layout_tv_room_picker"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:layout_marginTop="10dp"
-                        android:visibility="gone">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="ROOM"
-                            android:textColor="#94A3B8"
-                            android:textSize="9sp"
-                            android:textAllCaps="true"
-                            android:letterSpacing="0.12"
-                            android:fontFamily="sans-serif-medium"
-                            android:layout_marginBottom="4dp" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <Spinner
-                                android:id="@+id/spinner_tv_room"
-                                android:layout_width="0dp"
-                                android:layout_height="40dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/spinner_background"
-                                android:paddingStart="10dp"
-                                android:paddingEnd="4dp"
-                                android:spinnerMode="dropdown"
-                                android:focusable="true"
-                                android:focusableInTouchMode="true" />
-
-                            <Button
-                                android:id="@+id/btn_tv_book_room"
-                                style="@style/Widget.MaterialComponents.Button"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:text="Book"
-                                android:textSize="12sp"
-                                android:visibility="gone"
-                                android:focusable="true" />
-
-                        </LinearLayout>
-
-                        <!-- Booking progress / result -->
-                        <ProgressBar
-                            android:id="@+id/progress_tv_resources"
-                            style="?android:attr/progressBarStyleHorizontal"
-                            android:layout_width="match_parent"
-                            android:layout_height="2dp"
-                            android:indeterminate="true"
-                            android:visibility="gone" />
-
-                        <TextView
-                            android:id="@+id/tv_tv_booking_result"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:textSize="11sp"
-                            android:visibility="gone" />
-
-                    </LinearLayout>
 
                 </LinearLayout>
             </LinearLayout>

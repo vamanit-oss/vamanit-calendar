@@ -4,14 +4,10 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.vamanit.calendar.data.model.CalendarEvent
-import com.vamanit.calendar.data.model.CalendarResource
-import com.vamanit.calendar.data.model.CalendarSource
 import com.vamanit.calendar.databinding.ItemAgendaEventBinding
 import com.vamanit.calendar.databinding.ItemAgendaHeaderBinding
 import com.vamanit.calendar.ui.detail.EventDetailActivity
@@ -24,22 +20,12 @@ sealed class AgendaItem {
     data class Event(val event: CalendarEvent) : AgendaItem()
 }
 
-class AgendaAdapter(
-    /** Called when user taps Book on an inline room picker. */
-    private val onBookRoom: (calendarId: String, eventId: String, resourceCalendarId: String?) -> Unit = { _, _, _ -> }
-) : ListAdapter<AgendaItem, RecyclerView.ViewHolder>(AgendaDiff()) {
+class AgendaAdapter : ListAdapter<AgendaItem, RecyclerView.ViewHolder>(AgendaDiff()) {
 
     companion object {
         private const val TYPE_HEADER = 0
         private const val TYPE_EVENT  = 1
     }
-
-    /** Delegated resource calendars — set from the fragment once loaded. */
-    var resources: List<CalendarResource> = emptyList()
-        set(value) { field = value; notifyDataSetChanged() }
-
-    var userDisplayName: String = "My Calendar"
-        set(value) { field = value; notifyDataSetChanged() }
 
     inner class HeaderViewHolder(private val b: ItemAgendaHeaderBinding) :
         RecyclerView.ViewHolder(b.root) {
@@ -57,10 +43,6 @@ class AgendaAdapter(
     inner class EventViewHolder(private val b: ItemAgendaEventBinding) :
         RecyclerView.ViewHolder(b.root) {
 
-        private var spinnerReady = false
-        private var initialPos   = 0
-        private var spinnerItems = listOf<Pair<String, CalendarResource?>>()
-
         fun bind(event: CalendarEvent) {
             b.root.setOnClickListener {
                 it.context.startActivity(EventDetailActivity.createIntent(it.context, event))
@@ -70,7 +52,8 @@ class AgendaAdapter(
                 val fmt = DateTimeFormatter.ofPattern("HH:mm")
                 "${event.startTime.format(fmt)} – ${event.endTime.format(fmt)}"
             }
-            b.tvLocation.text = event.location ?: ""
+            b.tvLocation.text = event.location?.takeIf { it.isNotBlank() } ?: ""
+            b.tvLocation.visibility = if (event.location.isNullOrBlank()) View.GONE else View.VISIBLE
             b.tvSource.text = event.source.label
 
             val color = try {
@@ -82,50 +65,6 @@ class AgendaAdapter(
 
             val isPast = event.endTime.isBefore(ZonedDateTime.now())
             b.root.alpha = if (isPast) 0.5f else 1.0f
-
-            // ── Inline room picker ────────────────────────────────────────────
-            // Always show, even for Microsoft events (read-only in that case)
-            b.layoutItemRoomPicker.visibility = View.VISIBLE
-            spinnerReady = false
-
-            val personal = "$userDisplayName's Calendar" to null
-            val entries  = resources.map { it.spinnerLabel to it }
-            spinnerItems = listOf(personal) + entries
-
-            initialPos = if (event.location != null) {
-                spinnerItems.indexOfFirst { (_, res) ->
-                    res?.displayName?.let { event.location.contains(it, ignoreCase = true) } == true
-                }.takeIf { it >= 0 } ?: 0
-            } else 0
-
-            val labels = spinnerItems.map { it.first }
-            val adapter = ArrayAdapter(
-                b.root.context,
-                android.R.layout.simple_spinner_item,
-                labels
-            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-
-            b.spinnerItemRoom.adapter = adapter
-            b.spinnerItemRoom.setSelection(initialPos, false)
-            spinnerReady = true
-
-            val isGoogleEvent = event.source == CalendarSource.GOOGLE
-            b.spinnerItemRoom.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
-                    if (!spinnerReady) return
-                    b.btnItemBook.visibility =
-                        if (pos != initialPos && isGoogleEvent) View.VISIBLE else View.GONE
-                }
-                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-            }
-
-            b.btnItemBook.setOnClickListener {
-                val (_, resource) = spinnerItems.getOrNull(b.spinnerItemRoom.selectedItemPosition)
-                    ?: return@setOnClickListener
-                onBookRoom(event.calendarId ?: "primary", event.id, resource?.calendarId)
-                b.btnItemBook.visibility = View.GONE
-                initialPos = b.spinnerItemRoom.selectedItemPosition
-            }
         }
     }
 
