@@ -119,26 +119,28 @@ class EventDetailActivity : AppCompatActivity() {
         binding.tvDescription.text = description?.takeIf { it.isNotBlank() } ?: "—"
 
         // ── Room / Resource picker ────────────────────────────────────────────
-        // Show the spinner for Google events (where we can book rooms).
-        // For Microsoft/other: fall back to static location text.
-        // The spinner always appears — even if resource loading fails we still show
-        // the personal-calendar "no room" option so the UI is consistent.
-
-        if (calSource == CalendarSource.GOOGLE) {
-            binding.tvLocation.visibility = View.GONE
-            binding.layoutResourcePicker.visibility = View.VISIBLE
-            viewModel.loadResources()
-            observeResourceState(calendarId ?: "primary", eventId, location)
-            observeBookingState()
-        } else {
-            binding.tvLocation.text = location?.takeIf { it.isNotBlank() } ?: "—"
-            binding.layoutResourcePicker.visibility = View.GONE
-        }
+        // Always show the room picker — Google events support booking,
+        // Microsoft events show the picker read-only (Book button hidden).
+        binding.tvLocation.visibility = View.GONE
+        binding.layoutResourcePicker.visibility = View.VISIBLE
+        viewModel.loadResources()
+        observeResourceState(
+            calendarId   = calendarId ?: "primary",
+            eventId      = eventId,
+            currentLocation = location,
+            isGoogleEvent   = calSource == CalendarSource.GOOGLE
+        )
+        observeBookingState()
     }
 
     // ── Resource spinner ──────────────────────────────────────────────────────
 
-    private fun observeResourceState(calendarId: String, eventId: String, currentLocation: String?) {
+    private fun observeResourceState(
+        calendarId: String,
+        eventId: String,
+        currentLocation: String?,
+        isGoogleEvent: Boolean
+    ) {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.resourceState.collect { state ->
@@ -154,19 +156,19 @@ class EventDetailActivity : AppCompatActivity() {
                                 eventId         = eventId,
                                 userDisplayName = state.userDisplayName,
                                 resources       = state.resources,
-                                currentLocation = currentLocation
+                                currentLocation = currentLocation,
+                                isGoogleEvent   = isGoogleEvent
                             )
                         }
                         is ResourceUiState.Error -> {
                             binding.progressResources.visibility = View.GONE
-                            // Rooms unavailable — show spinner with personal-calendar option only.
-                            // Booking is disabled (no resource IDs) but the UI remains consistent.
                             buildSpinner(
                                 calendarId      = calendarId,
                                 eventId         = eventId,
                                 userDisplayName = "My Calendar",
                                 resources       = emptyList(),
-                                currentLocation = currentLocation
+                                currentLocation = currentLocation,
+                                isGoogleEvent   = isGoogleEvent
                             )
                         }
                     }
@@ -180,14 +182,13 @@ class EventDetailActivity : AppCompatActivity() {
         eventId: String,
         userDisplayName: String,
         resources: List<CalendarResource>,
-        currentLocation: String?
+        currentLocation: String?,
+        isGoogleEvent: Boolean
     ) {
-        // First entry = personal "no-room" item
-        val personalEntry  = SpinnerEntry(label = "$userDisplayName's Calendar", resource = null)
+        val personalEntry   = SpinnerEntry(label = "$userDisplayName's Calendar", resource = null)
         val resourceEntries = resources.map { SpinnerEntry(label = it.spinnerLabel, resource = it) }
         spinnerItems = listOf(personalEntry) + resourceEntries
 
-        // Pre-select whichever resource name matches the event's existing location (if any)
         initialSpinnerPosition = if (currentLocation != null) {
             spinnerItems.indexOfFirst { entry ->
                 entry.resource?.displayName?.let { currentLocation.contains(it, ignoreCase = true) } == true
@@ -207,13 +208,16 @@ class EventDetailActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (!spinnerReady) return
                 val changed = position != initialSpinnerPosition
-                binding.btnBookRoom.visibility = if (changed) View.VISIBLE else View.GONE
+                // Book button only for Google events (requires calendar.events write scope)
+                binding.btnBookRoom.visibility =
+                    if (changed && isGoogleEvent) View.VISIBLE else View.GONE
             }
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
 
         binding.btnBookRoom.setOnClickListener {
-            val selected = spinnerItems.getOrNull(binding.spinnerRoom.selectedItemPosition) ?: return@setOnClickListener
+            val selected = spinnerItems.getOrNull(binding.spinnerRoom.selectedItemPosition)
+                ?: return@setOnClickListener
             viewModel.bookRoom(calendarId, eventId, selected.resource?.calendarId)
         }
     }
