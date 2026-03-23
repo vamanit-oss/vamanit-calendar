@@ -66,37 +66,37 @@ class MicrosoftCalendarDataSource @Inject constructor(
 
     /**
      * Returns Microsoft calendars where the signed-in user is a manager or delegate —
-     * i.e. the calendar is owned by someone else AND either:
-     *  • [isSharedWithMe] is true  (Exchange delegate / shared-mailbox relationship), OR
-     *  • [canEdit] is true         (calendar sharing with edit permission).
+     * identified by [isSharedWithMe] (Exchange delegate) or [canEdit] (calendar sharing),
+     * excluding only the user's own default calendar via [isDefaultCalendar].
      *
-     * Typically these are room mailboxes for which IT has made this user the room manager.
+     * Owner-email comparison is intentionally avoided: UPN vs SMTP address mismatches
+     * in Exchange make it unreliable. [isDefaultCalendar] is the authoritative flag.
      */
     suspend fun fetchManagedResources(token: String): List<CalendarResource> =
         withContext(Dispatchers.IO) {
-            val userEmail = fetchUserEmail(token) ?: return@withContext emptyList()
-            // Include isSharedWithMe so Exchange delegate relationships are captured
             val url = "$GRAPH_BASE/me/calendars" +
-                "?\$select=id,name,owner,canEdit,isSharedWithMe&\$top=50"
+                "?\$select=id,name,owner,canEdit,isSharedWithMe,isDefaultCalendar&\$top=50"
             val json  = graphGet(token, url) ?: return@withContext emptyList()
             val value = json.getAsJsonArray("value") ?: return@withContext emptyList()
+            Timber.d("MS fetchManagedResources: ${value.size()} calendars returned")
             value.mapNotNull { elem ->
-                val cal           = elem.asJsonObject
-                val canEdit       = cal.get("canEdit")?.asBoolean       ?: false
+                val cal            = elem.asJsonObject
+                val id             = cal.get("id")?.asString              ?: return@mapNotNull null
+                val name           = cal.get("name")?.asString            ?: return@mapNotNull null
+                val canEdit        = cal.get("canEdit")?.asBoolean        ?: false
                 val isSharedWithMe = cal.get("isSharedWithMe")?.asBoolean ?: false
-                val ownerEmail    = cal.getAsJsonObject("owner")
-                    ?.get("address")?.asString ?: ""
-                // Must be delegate OR have edit access, and must NOT be owned by this user
-                val isManaged = (isSharedWithMe || canEdit) &&
-                    !ownerEmail.equals(userEmail, ignoreCase = true)
+                val isDefault      = cal.get("isDefaultCalendar")?.asBoolean ?: false
+                val ownerEmail     = cal.getAsJsonObject("owner")?.get("address")?.asString ?: ""
+                Timber.d("  calendar='$name' canEdit=$canEdit isSharedWithMe=$isSharedWithMe isDefault=$isDefault owner=$ownerEmail")
+                // Not the user's own default calendar, AND has delegate or edit access
+                val isManaged = !isDefault && (isSharedWithMe || canEdit)
                 if (!isManaged) return@mapNotNull null
-                val name = cal.get("name")?.asString ?: return@mapNotNull null
-                val id   = cal.get("id")?.asString   ?: return@mapNotNull null
                 // Parse "Building - Room Name" convention; fall back to name as-is
                 val parts = name.split(" - ", limit = 2)
                 val (building, displayName) =
                     if (parts.size == 2) parts[0].trim() to parts[1].trim()
                     else null to name
+                Timber.d("  → adding resource: displayName='$displayName' building='$building'")
                 CalendarResource(calendarId = id, displayName = displayName, buildingName = building)
             }
         }
@@ -116,17 +116,19 @@ class MicrosoftCalendarDataSource @Inject constructor(
      * so callers can distinguish personal from delegated calendars.
      */
     private suspend fun fetchAllCalendars(token: String): List<MsCalendarInfo> {
-        val userEmail = fetchUserEmail(token) ?: ""
-        val url = "$GRAPH_BASE/me/calendars?\$select=id,name,isDefaultCalendar,owner,canEdit&\$top=50"
+        val url = "$GRAPH_BASE/me/calendars" +
+            "?\$select=id,name,isDefaultCalendar,isSharedWithMe,canEdit&\$top=50"
         val json = graphGet(token, url) ?: return emptyList()
         val value = json.getAsJsonArray("value") ?: return emptyList()
         return value.mapNotNull { elem ->
-            val cal  = elem.asJsonObject
-            val id   = cal.get("id")?.asString   ?: return@mapNotNull null
-            val name = cal.get("name")?.asString ?: return@mapNotNull null
-            val ownerEmail = cal.getAsJsonObject("owner")?.get("address")?.asString ?: ""
-            val isDefault  = cal.get("isDefaultCalendar")?.asBoolean ?: false
-            val isOwned    = isDefault || ownerEmail.equals(userEmail, ignoreCase = true)
+            val cal            = elem.asJsonObject
+            val id             = cal.get("id")?.asString              ?: return@mapNotNull null
+            val name           = cal.get("name")?.asString            ?: return@mapNotNull null
+            val isDefault      = cal.get("isDefaultCalendar")?.asBoolean ?: false
+            val isSharedWithMe = cal.get("isSharedWithMe")?.asBoolean    ?: false
+            // Owned = user's own default calendar OR any calendar NOT shared by someone else
+            // isSharedWithMe=true is the reliable signal that this is a delegated calendar
+            val isOwned = isDefault || !isSharedWithMe
             MsCalendarInfo(id, name, isOwned)
         }
     }
