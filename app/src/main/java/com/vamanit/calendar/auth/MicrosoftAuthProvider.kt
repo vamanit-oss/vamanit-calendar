@@ -22,7 +22,7 @@ import kotlin.coroutines.resumeWithException
  *  2. Add redirect URI (Public client/native):
  *     msauth://com.vamanit.calendar/{BASE64_KEYSTORE_HASH}
  *  3. API permissions → Microsoft Graph → Delegated:
- *     User.Read, Calendars.Read, offline_access
+ *     User.Read, User.ReadBasic.All, Calendars.Read, Calendars.Read.Shared, Place.Read.All, offline_access
  *  4. Copy Application (client) ID → res/raw/msal_config.json
  *
  * TV note: msal_config.json sets "authorization_user_agent": "WEBVIEW"
@@ -33,7 +33,7 @@ class MicrosoftAuthProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        val SCOPES = arrayOf("User.Read", "User.ReadBasic.All", "Calendars.Read", "Place.Read.All", "offline_access")
+        val SCOPES = arrayOf("User.Read", "User.ReadBasic.All", "Calendars.Read", "Calendars.Read.Shared", "Place.Read.All", "offline_access")
         private const val PREFS = "microsoft_auth"
         private const val KEY_HAS_ACCOUNT = "has_account"
     }
