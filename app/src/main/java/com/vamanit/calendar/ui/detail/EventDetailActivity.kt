@@ -2,6 +2,8 @@ package com.vamanit.calendar.ui.detail
 
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -16,10 +18,12 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.snackbar.Snackbar
 import com.vamanit.calendar.R
 import com.vamanit.calendar.data.model.CalendarResource
 import com.vamanit.calendar.data.model.CalendarSource
 import com.vamanit.calendar.databinding.ActivityEventDetailBinding
+import com.vamanit.calendar.ui.signin.SignInActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.time.ZoneId
@@ -252,6 +256,21 @@ class EventDetailActivity : AppCompatActivity() {
                             binding.tvBookingResult.text = "⚠ ${state.message}"
                             binding.tvBookingResult.setTextColor(Color.parseColor("#F83A22"))
                             viewModel.resetBookingState()
+                        }
+                        is BookingState.NeedsReAuth -> {
+                            binding.progressResources.visibility = View.GONE
+                            binding.btnBookRoom.isEnabled = true
+                            viewModel.resetBookingState()
+                            Snackbar.make(
+                                binding.root,
+                                "Room booking needs updated permissions — tap to re-sign in",
+                                Snackbar.LENGTH_INDEFINITE
+                            ).setAction("Re-sign in") {
+                                startActivity(
+                                    Intent(this@EventDetailActivity, SignInActivity::class.java)
+                                        .addFlags(FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK)
+                                )
+                            }.show()
                         }
                     }
                 }

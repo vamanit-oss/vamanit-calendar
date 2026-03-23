@@ -12,6 +12,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.vamanit.calendar.databinding.FragmentPhoneAgendaBinding
 import com.vamanit.calendar.ui.dashboard.DashboardViewModel
+import com.vamanit.calendar.ui.detail.BookingState
 import com.vamanit.calendar.ui.detail.EventDetailViewModel
 import com.vamanit.calendar.ui.detail.ResourceUiState
 import com.vamanit.calendar.ui.signin.SignInActivity
@@ -93,19 +94,32 @@ class PhoneAgendaFragment : Fragment() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 roomViewModel.bookingState.collect { state ->
                     when (state) {
-                        is com.vamanit.calendar.ui.detail.BookingState.Success -> {
+                        is BookingState.Success -> {
                             com.google.android.material.snackbar.Snackbar.make(
                                 binding.root, "✓ Room booked successfully",
                                 com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
                             ).show()
                             roomViewModel.resetBookingState()
                         }
-                        is com.vamanit.calendar.ui.detail.BookingState.Error -> {
+                        is BookingState.Error -> {
                             com.google.android.material.snackbar.Snackbar.make(
                                 binding.root, "⚠ ${state.message}",
                                 com.google.android.material.snackbar.Snackbar.LENGTH_LONG
                             ).show()
                             roomViewModel.resetBookingState()
+                        }
+                        is BookingState.NeedsReAuth -> {
+                            roomViewModel.resetBookingState()
+                            com.google.android.material.snackbar.Snackbar.make(
+                                binding.root,
+                                "Room booking needs updated permissions — tap to re-sign in",
+                                com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE
+                            ).setAction("Re-sign in") {
+                                startActivity(
+                                    Intent(requireContext(), SignInActivity::class.java)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                )
+                            }.show()
                         }
                         else -> Unit
                     }

@@ -1,6 +1,7 @@
 package com.vamanit.calendar.data.remote
 
 import android.content.Context
+import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.calendar.Calendar
@@ -144,10 +145,12 @@ class GoogleCalendarDataSource @Inject constructor(
         eventId: String,
         resourceCalendarId: String?
     ) = withContext(Dispatchers.IO) {
+        Timber.d("patchEventRoom: calendarId=$calendarId eventId=$eventId resourceCalendarId=$resourceCalendarId")
         val service = buildService()
         // Fetch current event attendees (non-resource people) so we don't wipe them
         val current = service.events().get(calendarId, eventId).execute()
         val people  = current.attendees?.filter { it.resource != true } ?: emptyList()
+        Timber.d("patchEventRoom: fetched current event, attendee count=${people.size}")
 
         val newAttendees: List<EventAttendee> = if (resourceCalendarId != null) {
             people + listOf(EventAttendee().setEmail(resourceCalendarId).setResource(true))
@@ -155,11 +158,25 @@ class GoogleCalendarDataSource @Inject constructor(
             people
         }
 
-        val patch = Event().apply { attendees = newAttendees }
-        service.events().patch(calendarId, eventId, patch)
-            .setSendUpdates("none")
-            .execute()
-        Timber.d("Patched event $eventId: room → $resourceCalendarId")
+        try {
+            val patch = Event().apply { attendees = newAttendees }
+            service.events().patch(calendarId, eventId, patch)
+                .setSendUpdates("none")
+                .execute()
+            Timber.d("patchEventRoom: patch succeeded for eventId=$eventId room=$resourceCalendarId")
+        } catch (e: GoogleJsonResponseException) {
+            val status = e.statusCode
+            val message = when (status) {
+                403 -> "Insufficient permissions to book rooms (HTTP 403). " +
+                       "The calendar.events write scope may not have been granted during sign-in. " +
+                       "Please re-sign in to grant the required permissions."
+                401 -> "Authentication token expired or invalid (HTTP 401). " +
+                       "Please re-sign in to refresh your credentials."
+                else -> "Google Calendar API error (HTTP $status): ${e.details?.message ?: e.message}"
+            }
+            Timber.e(e, "patchEventRoom failed: $message")
+            throw Exception(message, e)
+        }
     }
 
     private fun mapGoogleColor(colorId: String): String? = when (colorId) {
