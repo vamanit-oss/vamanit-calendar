@@ -78,6 +78,47 @@
         android:layout_height="1dp"
         android:background="#EEE9E0" />
 
+    <!-- Calendar selector spinner — below logo, above Today banner -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:background="#FFFFFE">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="VIEWING"
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginEnd="10dp" />
+
+        <Spinner
+            android:id="@+id/spinner_calendar_selector"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:background="@drawable/spinner_background"
+            android:spinnerMode="dropdown"
+            android:focusable="true"
+            android:focusableInTouchMode="true" />
+
+    </LinearLayout>
+
+    <!-- Ruling line below spinner -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#EEE9E0" />
+
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
