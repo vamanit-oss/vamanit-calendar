@@ -137,7 +137,7 @@ class MicrosoftCalendarDataSource @Inject constructor(
      * callers use /users/{email}/calendarView instead of /me/calendars/{id}/calendarView.
      */
     private suspend fun fetchRooms(token: String): List<MsCalendarInfo> {
-        val json  = graphGet(token, "$GRAPH_BASE/me/findRooms") ?: return emptyList()
+        val json  = graphGet(token, "$GRAPH_BASE/me/findRooms()") ?: return emptyList()
         val value = json.getAsJsonArray("value")               ?: return emptyList()
         return value.mapNotNull { elem ->
             val obj     = elem.asJsonObject
