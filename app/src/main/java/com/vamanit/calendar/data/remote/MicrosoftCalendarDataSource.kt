@@ -137,7 +137,7 @@ class MicrosoftCalendarDataSource @Inject constructor(
      * callers use /users/{email}/calendarView instead of /me/calendars/{id}/calendarView.
      */
     private suspend fun fetchRooms(token: String): List<MsCalendarInfo> {
-        val json  = graphGet(token, "$GRAPH_BASE/me/findRooms()") ?: return emptyList()
+        val json  = graphGet(token, "$GRAPH_BASE/me/findRooms()", preferTimezone = false) ?: return emptyList()
         val value = json.getAsJsonArray("value")               ?: return emptyList()
         return value.mapNotNull { elem ->
             val obj     = elem.asJsonObject
@@ -183,14 +183,15 @@ class MicrosoftCalendarDataSource @Inject constructor(
     }
 
     /** Executes a GET request against the Graph API and returns the parsed JSON body. */
-    private fun graphGet(token: String, url: String): JsonObject? {
-        val request = Request.Builder()
+    private fun graphGet(token: String, url: String, preferTimezone: Boolean = true): JsonObject? {
+        val builder = Request.Builder()
             .url(url)
             .addHeader("Authorization", "Bearer $token")
-            .addHeader("Prefer", "outlook.timezone=\"${ZoneId.systemDefault().id}\"")
-            .build()
+        if (preferTimezone) {
+            builder.addHeader("Prefer", "outlook.timezone=\"${ZoneId.systemDefault().id}\"")
+        }
         return runCatching {
-            httpClient.newCall(request).execute().use { response ->
+            httpClient.newCall(builder.build()).execute().use { response ->
                 if (!response.isSuccessful) {
                     Timber.e("Graph API error ${response.code} for $url")
                     return null
