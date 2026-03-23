@@ -139,8 +139,17 @@ class TvDashboardFragment : Fragment() {
             labels
         ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
 
+        // Preserve the user's current selection across rebuilds (lifecycle restarts re-emit
+        // the cached StateFlow value and would otherwise reset the spinner to position 0).
+        val restorePos = calendarEntries.indexOfFirst {
+            it.resource?.calendarId == selectedCalendarId
+        }.coerceAtLeast(0)
+
+        // Detach listener BEFORE swapping adapter so Android's internal setSelection(0)
+        // call on adapter change never fires our callback with a stale position.
+        binding.spinnerCalendarSelector.onItemSelectedListener = null
         binding.spinnerCalendarSelector.adapter = spinnerAdapter
-        binding.spinnerCalendarSelector.setSelection(0, false)
+        binding.spinnerCalendarSelector.setSelection(restorePos, false)
         binding.spinnerCalendarSelector.isEnabled = true
 
         binding.spinnerCalendarSelector.onItemSelectedListener =
@@ -148,8 +157,9 @@ class TvDashboardFragment : Fragment() {
                 override fun onItemSelected(
                     parent: AdapterView<*>?, v: View?, position: Int, id: Long
                 ) {
-                    selectedCalendarId = calendarEntries.getOrNull(position)?.resource?.calendarId
-                    // Re-render the meeting list with the new filter
+                    val newId = calendarEntries.getOrNull(position)?.resource?.calendarId
+                    if (newId == selectedCalendarId) return  // no real change — ignore
+                    selectedCalendarId = newId
                     renderEvents(viewModel.events.value, DateTimeFormatter.ofPattern("HH:mm"))
                 }
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
