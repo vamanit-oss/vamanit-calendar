@@ -13,11 +13,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.vamanit.calendar.data.model.CalendarEvent
 import com.vamanit.calendar.data.model.CalendarResource
-import com.vamanit.calendar.data.model.CalendarSource
 import com.vamanit.calendar.databinding.FragmentTvDashboardBinding
 import com.vamanit.calendar.ui.dashboard.DashboardViewModel
-import com.vamanit.calendar.ui.detail.BookingState
+import com.vamanit.calendar.ui.detail.EventDetailActivity
 import com.vamanit.calendar.ui.detail.EventDetailViewModel
 import com.vamanit.calendar.ui.detail.ResourceUiState
 import com.vamanit.calendar.ui.signin.SignInActivity
@@ -38,11 +38,12 @@ class TvDashboardFragment : Fragment() {
     private lateinit var adapter: TvEventCardAdapter
     private var clockJob: Job? = null
 
-    /** Spinner entries for the TV room picker. */
-    private var tvSpinnerItems = listOf<TvSpinnerEntry>()
-    private var tvSpinnerInitialPos = 0
-    private var tvSpinnerReady = false
-    private data class TvSpinnerEntry(val label: String, val resource: CalendarResource?)
+    /** Spinner entries for the clock-panel calendar selector. */
+    private data class CalendarEntry(val label: String, val resource: CalendarResource?)
+    private var calendarEntries = listOf<CalendarEntry>()
+
+    /** The calendarId currently selected; null = personal (show all events). */
+    private var selectedCalendarId: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -57,33 +58,28 @@ class TvDashboardFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Vertical list for the right-page remaining events
         adapter = TvEventCardAdapter()
         binding.rvEvents.apply {
             layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
             this.adapter = this@TvDashboardFragment.adapter
         }
 
-        val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
-        var currentNextEvent: com.vamanit.calendar.data.model.CalendarEvent? = null
+        var currentNextEvent: CalendarEvent? = null
 
-        // Make next meeting card clickable → open EventDetailActivity
+        // Tap next-meeting card to open full detail
         binding.cardNextMeeting.setOnClickListener {
             currentNextEvent?.let { event ->
-                startActivity(
-                    com.vamanit.calendar.ui.detail.EventDetailActivity.createIntent(requireContext(), event)
-                )
+                startActivity(EventDetailActivity.createIntent(requireContext(), event))
             }
         }
         binding.cardNextMeeting.isFocusable = true
         binding.cardNextMeeting.isClickable = true
 
-        // Load delegated room resources once and keep for the session
+        // Load delegated resource calendars once and populate the clock-panel spinner
         roomViewModel.loadResources()
-        observeTvResourceState()
-        observeTvBookingState()
+        observeCalendarSelector()
 
-        // Exit button — signs out all accounts and returns to the sign-in selection screen
+        // Exit / sign-out
         binding.btnExit.setOnClickListener {
             viewModel.signOut()
             startActivity(
@@ -92,64 +88,13 @@ class TvDashboardFragment : Fragment() {
             )
         }
 
+        val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+
+        // Observe events — re-render whenever events change
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.events.collect { events ->
-                    val now = ZonedDateTime.now()
-
-                    // Split: next upcoming vs the rest
-                    val nextIdx = events.indexOfFirst { !it.endTime.isBefore(now) }
-                    val nextEvent = if (nextIdx >= 0) events[nextIdx] else null
-                    currentNextEvent = nextEvent
-                    val remaining = if (nextIdx >= 0) events.drop(nextIdx + 1) else events
-
-                    // ── Next meeting card ──
-                    if (nextEvent != null) {
-                        binding.cardNextMeeting.visibility = View.VISIBLE
-
-                        val eventColor = try {
-                            Color.parseColor(
-                                nextEvent.colorHex ?: nextEvent.source.colorFallback
-                            )
-                        } catch (e: Exception) {
-                            Color.parseColor(nextEvent.source.colorFallback)
-                        }
-                        binding.viewNextColorBar.setBackgroundColor(eventColor)
-                        binding.tvNextSource.text = nextEvent.source.label
-                        binding.tvNextTitle.text = nextEvent.title
-                        binding.tvNextTime.text = if (nextEvent.isAllDay) {
-                            "All day"
-                        } else {
-                            "${nextEvent.startTime.format(timeFmt)} – ${nextEvent.endTime.format(timeFmt)}"
-                        }
-                        binding.tvNextLocation.text = nextEvent.location?.takeIf { it.isNotBlank() } ?: ""
-                        binding.tvNextLocation.visibility =
-                            if (nextEvent.location.isNullOrBlank()) View.GONE else View.VISIBLE
-
-                        // Show room picker for this event (always — resources load separately)
-                        refreshTvRoomPicker(
-                            calendarId = nextEvent.calendarId ?: "primary",
-                            eventId = nextEvent.id,
-                            currentLocation = nextEvent.location,
-                            isGoogleEvent = nextEvent.source == CalendarSource.GOOGLE
-                        )
-                    } else {
-                        binding.cardNextMeeting.visibility = View.GONE
-                        binding.layoutTvRoomPicker.visibility = View.GONE
-                    }
-
-                    // ── Remaining list ──
-                    adapter.submitList(remaining)
-                    binding.tvAlsoToday.visibility =
-                        if (remaining.isNotEmpty() && nextEvent != null) View.VISIBLE else View.GONE
-
-                    // ── Event count badge ──
-                    val total = events.count { !it.endTime.isBefore(now) }
-                    binding.tvEventCount.text = if (total > 0) "$total today" else ""
-
-                    // ── Empty state ──
-                    binding.tvEmptyState.visibility =
-                        if (nextEvent == null && remaining.isEmpty()) View.VISIBLE else View.GONE
+                viewModel.events.collect { allEvents ->
+                    currentNextEvent = renderEvents(allEvents, timeFmt)
                 }
             }
         }
@@ -167,162 +112,102 @@ class TvDashboardFragment : Fragment() {
         }
     }
 
-    // ── TV inline room picker ─────────────────────────────────────────────────
+    // ── Calendar selector spinner (clock panel) ───────────────────────────────
 
-    private var tvCurrentCalendarId = "primary"
-    private var tvCurrentEventId    = ""
-
-    /** Called whenever the "next meeting" changes — re-wires the spinner for the new event. */
-    private fun refreshTvRoomPicker(
-        calendarId: String,
-        eventId: String,
-        currentLocation: String?,
-        isGoogleEvent: Boolean
-    ) {
-        tvCurrentCalendarId = calendarId
-        tvCurrentEventId    = eventId
-        binding.layoutTvRoomPicker.visibility = View.VISIBLE
-
-        // Re-build spinner from whatever resource state is already available
-        val state = roomViewModel.resourceState.value
-        when (state) {
-            is ResourceUiState.Ready -> buildTvSpinner(
-                calendarId, eventId, state.userDisplayName,
-                state.resources, currentLocation, isGoogleEvent
-            )
-            is ResourceUiState.Error -> buildTvSpinner(
-                calendarId, eventId, "My Calendar",
-                emptyList(), currentLocation, isGoogleEvent
-            )
-            is ResourceUiState.Loading -> {
-                binding.progressTvResources.visibility = View.VISIBLE
-                binding.spinnerTvRoom.isEnabled = false
-            }
-        }
-    }
-
-    private fun observeTvResourceState() {
+    private fun observeCalendarSelector() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 roomViewModel.resourceState.collect { state ->
                     when (state) {
-                        is ResourceUiState.Loading -> {
-                            binding.progressTvResources.visibility = View.VISIBLE
-                            binding.spinnerTvRoom.isEnabled = false
-                        }
-                        is ResourceUiState.Ready -> {
-                            binding.progressTvResources.visibility = View.GONE
-                            if (binding.layoutTvRoomPicker.visibility == View.VISIBLE) {
-                                buildTvSpinner(
-                                    tvCurrentCalendarId, tvCurrentEventId,
-                                    state.userDisplayName, state.resources,
-                                    null, true
-                                )
-                            }
-                        }
-                        is ResourceUiState.Error -> {
-                            binding.progressTvResources.visibility = View.GONE
-                            if (binding.layoutTvRoomPicker.visibility == View.VISIBLE) {
-                                buildTvSpinner(
-                                    tvCurrentCalendarId, tvCurrentEventId,
-                                    "My Calendar", emptyList(), null, false
-                                )
-                            }
-                        }
+                        is ResourceUiState.Loading -> binding.spinnerCalendarSelector.isEnabled = false
+                        is ResourceUiState.Ready   -> buildCalendarSpinner(state.userDisplayName, state.resources)
+                        is ResourceUiState.Error   -> buildCalendarSpinner("My Calendar", emptyList())
                     }
                 }
             }
         }
     }
 
-    private fun buildTvSpinner(
-        calendarId: String,
-        eventId: String,
-        userDisplayName: String,
-        resources: List<CalendarResource>,
-        currentLocation: String?,
-        isGoogleEvent: Boolean
-    ) {
-        val personal = TvSpinnerEntry("$userDisplayName's Calendar", null)
-        val resourceEntries = resources.map { TvSpinnerEntry(it.spinnerLabel, it) }
-        tvSpinnerItems = listOf(personal) + resourceEntries
+    private fun buildCalendarSpinner(userDisplayName: String, resources: List<CalendarResource>) {
+        val personal = CalendarEntry("$userDisplayName's Calendar", null)
+        calendarEntries = listOf(personal) + resources.map { CalendarEntry(it.spinnerLabel, it) }
 
-        tvSpinnerInitialPos = if (currentLocation != null) {
-            tvSpinnerItems.indexOfFirst { entry ->
-                entry.resource?.displayName?.let { currentLocation.contains(it, ignoreCase = true) } == true
-            }.takeIf { it >= 0 } ?: 0
-        } else 0
+        val labels = calendarEntries.map { it.label }
+        val spinnerAdapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            labels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
 
-        val labels = tvSpinnerItems.map { it.label }
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, labels).also {
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        tvSpinnerReady = false
-        binding.spinnerTvRoom.adapter = adapter
-        binding.spinnerTvRoom.setSelection(tvSpinnerInitialPos, false)
-        binding.spinnerTvRoom.isEnabled = true
-        tvSpinnerReady = true
+        binding.spinnerCalendarSelector.adapter = spinnerAdapter
+        binding.spinnerCalendarSelector.setSelection(0, false)
+        binding.spinnerCalendarSelector.isEnabled = true
 
-        // Book button only appears when selection changes AND it's a Google event (write scope)
-        binding.spinnerTvRoom.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (!tvSpinnerReady) return
-                val changed = position != tvSpinnerInitialPos
-                binding.btnTvBookRoom.visibility =
-                    if (changed && isGoogleEvent) View.VISIBLE else View.GONE
+        binding.spinnerCalendarSelector.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?, v: View?, position: Int, id: Long
+                ) {
+                    selectedCalendarId = calendarEntries.getOrNull(position)?.resource?.calendarId
+                    // Re-render the meeting list with the new filter
+                    renderEvents(viewModel.events.value, DateTimeFormatter.ofPattern("HH:mm"))
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-        }
-
-        binding.btnTvBookRoom.setOnClickListener {
-            val selected = tvSpinnerItems.getOrNull(binding.spinnerTvRoom.selectedItemPosition)
-                ?: return@setOnClickListener
-            roomViewModel.bookRoom(calendarId, eventId, selected.resource?.calendarId)
-        }
     }
 
-    private fun observeTvBookingState() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                roomViewModel.bookingState.collect { state ->
-                    when (state) {
-                        is BookingState.Idle -> {
-                            binding.btnTvBookRoom.isEnabled = true
-                            binding.tvTvBookingResult.visibility = View.GONE
-                        }
-                        is BookingState.Saving -> {
-                            binding.btnTvBookRoom.isEnabled = false
-                            binding.progressTvResources.visibility = View.VISIBLE
-                        }
-                        is BookingState.Success -> {
-                            binding.progressTvResources.visibility = View.GONE
-                            binding.btnTvBookRoom.visibility = View.GONE
-                            binding.tvTvBookingResult.visibility = View.VISIBLE
-                            binding.tvTvBookingResult.text = "✓ Room booked"
-                            binding.tvTvBookingResult.setTextColor(Color.parseColor("#16A765"))
-                            tvSpinnerInitialPos = binding.spinnerTvRoom.selectedItemPosition
-                            roomViewModel.resetBookingState()
-                        }
-                        is BookingState.Error -> {
-                            binding.progressTvResources.visibility = View.GONE
-                            binding.btnTvBookRoom.isEnabled = true
-                            binding.tvTvBookingResult.visibility = View.VISIBLE
-                            binding.tvTvBookingResult.text = "⚠ ${state.message}"
-                            binding.tvTvBookingResult.setTextColor(Color.parseColor("#F83A22"))
-                            roomViewModel.resetBookingState()
-                        }
-                        is BookingState.NeedsReAuth -> {
-                            binding.progressTvResources.visibility = View.GONE
-                            binding.btnTvBookRoom.isEnabled = true
-                            binding.tvTvBookingResult.visibility = View.VISIBLE
-                            binding.tvTvBookingResult.text = "⚠ Re-sign in on phone to enable room booking"
-                            binding.tvTvBookingResult.setTextColor(Color.parseColor("#F83A22"))
-                            roomViewModel.resetBookingState()
-                        }
-                    }
-                }
+    // ── Event rendering ───────────────────────────────────────────────────────
+
+    /**
+     * Filters [allEvents] by [selectedCalendarId] (null = show all),
+     * populates the next-meeting card and remaining list, returns the next event.
+     */
+    private fun renderEvents(
+        allEvents: List<CalendarEvent>,
+        timeFmt: DateTimeFormatter
+    ): CalendarEvent? {
+        val events = if (selectedCalendarId == null) allEvents
+                     else allEvents.filter { it.calendarId == selectedCalendarId }
+
+        val now       = ZonedDateTime.now()
+        val nextIdx   = events.indexOfFirst { !it.endTime.isBefore(now) }
+        val nextEvent = if (nextIdx >= 0) events[nextIdx] else null
+        val remaining = if (nextIdx >= 0) events.drop(nextIdx + 1) else events
+
+        // ── Next meeting card ──
+        if (nextEvent != null) {
+            binding.cardNextMeeting.visibility = View.VISIBLE
+            val eventColor = try {
+                Color.parseColor(nextEvent.colorHex ?: nextEvent.source.colorFallback)
+            } catch (e: Exception) {
+                Color.parseColor(nextEvent.source.colorFallback)
             }
+            binding.viewNextColorBar.setBackgroundColor(eventColor)
+            binding.tvNextSource.text = nextEvent.source.label
+            binding.tvNextTitle.text  = nextEvent.title
+            binding.tvNextTime.text   = if (nextEvent.isAllDay) "All day"
+                else "${nextEvent.startTime.format(timeFmt)} – ${nextEvent.endTime.format(timeFmt)}"
+            binding.tvNextLocation.text = nextEvent.location?.takeIf { it.isNotBlank() } ?: ""
+            binding.tvNextLocation.visibility =
+                if (nextEvent.location.isNullOrBlank()) View.GONE else View.VISIBLE
+        } else {
+            binding.cardNextMeeting.visibility = View.GONE
         }
+
+        // ── Remaining list ──
+        adapter.submitList(remaining)
+        binding.tvAlsoToday.visibility =
+            if (remaining.isNotEmpty() && nextEvent != null) View.VISIBLE else View.GONE
+
+        // ── Event count badge ──
+        val total = events.count { !it.endTime.isBefore(now) }
+        binding.tvEventCount.text = if (total > 0) "$total today" else ""
+
+        // ── Empty state ──
+        binding.tvEmptyState.visibility =
+            if (nextEvent == null && remaining.isEmpty()) View.VISIBLE else View.GONE
+
+        return nextEvent
     }
 
     override fun onDestroyView() {

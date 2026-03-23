@@ -163,59 +163,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="5dp"
+                    android:layout_marginBottom="8dp"
                     android:text="—"
                     android:textColor="#1E293B"
                     android:textSize="15sp" />
-
-                <!-- Resource picker (Google events only) -->
-                <LinearLayout
-                    android:id="@+id/layout_resource_picker"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="4dp"
-                    android:visibility="gone">
-
-                    <Spinner
-                        android:id="@+id/spinner_room"
-                        android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/spinner_background"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="4dp"
-                        android:spinnerMode="dropdown" />
-
-                    <Button
-                        android:id="@+id/btn_book_room"
-                        style="@style/Widget.MaterialComponents.Button"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:text="Book"
-                        android:textSize="13sp"
-                        android:visibility="gone" />
-
-                </LinearLayout>
-
-                <ProgressBar
-                    android:id="@+id/progress_resources"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="2dp"
-                    android:indeterminate="true"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/tv_booking_result"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:layout_marginBottom="8dp"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
 
                 <!-- Hidden views for right-page data passed via same layout -->
                 <!-- Attendees and Agenda labels are on the RIGHT page below,

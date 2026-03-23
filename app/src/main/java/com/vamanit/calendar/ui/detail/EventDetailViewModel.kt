@@ -2,7 +2,6 @@ package com.vamanit.calendar.ui.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.vamanit.calendar.data.model.CalendarResource
 import com.vamanit.calendar.data.remote.GoogleCalendarDataSource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,14 +20,6 @@ sealed class ResourceUiState {
     data class Error(val message: String) : ResourceUiState()
 }
 
-sealed class BookingState {
-    object Idle        : BookingState()
-    object Saving      : BookingState()
-    object Success     : BookingState()
-    object NeedsReAuth : BookingState()
-    data class Error(val message: String) : BookingState()
-}
-
 @HiltViewModel
 class EventDetailViewModel @Inject constructor(
     private val googleDataSource: GoogleCalendarDataSource
@@ -36,9 +27,6 @@ class EventDetailViewModel @Inject constructor(
 
     private val _resourceState = MutableStateFlow<ResourceUiState>(ResourceUiState.Loading)
     val resourceState: StateFlow<ResourceUiState> = _resourceState
-
-    private val _bookingState = MutableStateFlow<BookingState>(BookingState.Idle)
-    val bookingState: StateFlow<BookingState> = _bookingState
 
     fun loadResources() {
         viewModelScope.launch {
@@ -56,30 +44,4 @@ class EventDetailViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Books [resourceCalendarId] on the given event, or passes null to clear any existing room.
-     */
-    fun bookRoom(calendarId: String, eventId: String, resourceCalendarId: String?) {
-        viewModelScope.launch {
-            _bookingState.value = BookingState.Saving
-            runCatching {
-                googleDataSource.patchEventRoom(calendarId, eventId, resourceCalendarId)
-            }.onSuccess {
-                _bookingState.value = BookingState.Success
-            }.onFailure { e ->
-                Timber.e(e, "Failed to book room")
-                val googleError = e.cause as? GoogleJsonResponseException
-                    ?: e as? GoogleJsonResponseException
-                if (googleError != null && (googleError.statusCode == 401 || googleError.statusCode == 403)) {
-                    _bookingState.value = BookingState.NeedsReAuth
-                } else {
-                    _bookingState.value = BookingState.Error(e.message ?: "Failed to book room")
-                }
-            }
-        }
-    }
-
-    fun resetBookingState() {
-        _bookingState.value = BookingState.Idle
-    }
 }

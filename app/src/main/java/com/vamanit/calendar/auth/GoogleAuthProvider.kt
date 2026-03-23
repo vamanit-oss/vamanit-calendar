@@ -73,27 +73,16 @@ class GoogleAuthProvider @Inject constructor(
         const val REDIRECT_URI =
             "com.googleusercontent.apps.534654568144-qbbo6knmoqo3uqga35e0ipsq92d7dskl:/oauth2redirect"
 
-        /** Phone scopes — includes calendar.events write access for room booking. */
+        /** Read-only scopes — used for both phone (AppAuth) and TV (device flow). */
         val SCOPES = listOf(
-            "openid",
-            "email",
-            "profile",
-            "https://www.googleapis.com/auth/calendar.readonly",
-            "https://www.googleapis.com/auth/calendar.events"  // needed to book rooms
-        )
-
-        /**
-         * TV / Device-flow scopes — read-only.
-         * TVs are display-only; room booking is phone-only.
-         * Keeping this to the declared consent-screen scopes avoids
-         * "invalid_scope" rejections from the device-code endpoint.
-         */
-        val TV_SCOPES = listOf(
             "openid",
             "email",
             "profile",
             "https://www.googleapis.com/auth/calendar.readonly"
         )
+
+        /** TV device-flow uses the same read-only scope set. */
+        val TV_SCOPES = SCOPES
 
         private const val DEVICE_AUTH_URL = "https://oauth2.googleapis.com/device/code"
         private const val TOKEN_URL       = "https://oauth2.googleapis.com/token"
