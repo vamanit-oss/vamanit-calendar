@@ -132,18 +132,21 @@ class MicrosoftCalendarDataSource @Inject constructor(
     }
 
     /**
-     * Calls /me/findRooms and returns Exchange room mailboxes as [MsCalendarInfo].
-     * Room entries use the room email as [MsCalendarInfo.id] and isRoom=true so
-     * callers use /users/{email}/calendarView instead of /me/calendars/{id}/calendarView.
+     * Fetches all Exchange room resources from /places/microsoft.graph.room (requires
+     * Place.Read.All scope). Returns them as [MsCalendarInfo] with isRoom=true so
+     * callers use /users/{email}/calendarView for event fetching.
      */
     private suspend fun fetchRooms(token: String): List<MsCalendarInfo> {
-        val json  = graphGet(token, "$GRAPH_BASE/me/findRooms()", preferTimezone = false) ?: return emptyList()
-        val value = json.getAsJsonArray("value")               ?: return emptyList()
+        val url   = "$GRAPH_BASE/places/microsoft.graph.room?\$select=displayName,emailAddress&\$top=100"
+        val json  = graphGet(token, url, preferTimezone = false) ?: return emptyList()
+        val value = json.getAsJsonArray("value")                 ?: return emptyList()
+        Timber.d("MS fetchRooms: ${value.size()} rooms from Places API")
         return value.mapNotNull { elem ->
-            val obj     = elem.asJsonObject
-            val name    = obj.get("name")?.asString    ?: return@mapNotNull null
-            val address = obj.get("address")?.asString ?: return@mapNotNull null
-            MsCalendarInfo(id = address, name = name, isOwned = false, isRoom = true)
+            val obj   = elem.asJsonObject
+            val name  = obj.get("displayName")?.asString  ?: return@mapNotNull null
+            val email = obj.get("emailAddress")?.asString ?: return@mapNotNull null
+            Timber.d("  room: '$name' → $email")
+            MsCalendarInfo(id = email, name = name, isOwned = false, isRoom = true)
         }
     }
 
