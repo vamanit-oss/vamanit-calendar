@@ -14,7 +14,9 @@ data class CalendarEvent(
     val isAllDay: Boolean = false,
     val organizer: String? = null,
     val calendarName: String? = null,
-    val attendees: List<String> = emptyList()
+    val attendees: List<String> = emptyList(),
+    /** The Google Calendar ID this event belongs to (null for Microsoft events). */
+    val calendarId: String? = null
 )
 
 enum class CalendarSource(val label: String, val colorFallback: String) {

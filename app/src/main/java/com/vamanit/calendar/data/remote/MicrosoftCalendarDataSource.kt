@@ -44,7 +44,7 @@ class MicrosoftCalendarDataSource @Inject constructor(
             val request = Request.Builder()
                 .url(url)
                 .addHeader("Authorization", "Bearer $token")
-                .addHeader("Prefer", "outlook.timezone=\"UTC\"")
+                .addHeader("Prefer", "outlook.timezone=\"${ZoneId.systemDefault().id}\"")
                 .build()
 
             val events = mutableListOf<CalendarEvent>()
@@ -67,10 +67,18 @@ class MicrosoftCalendarDataSource @Inject constructor(
         val id = obj.get("id")?.asString ?: return null
         val title = obj.get("subject")?.asString ?: return null
         val startObj = obj.getAsJsonObject("start") ?: return null
-        val endObj = obj.getAsJsonObject("end") ?: return null
-        val tz = ZoneId.of(startObj.get("timeZone")?.asString ?: "UTC")
-        val start = parseGraphDateTime(startObj.get("dateTime")?.asString ?: return null, tz) ?: return null
-        val end = parseGraphDateTime(endObj.get("dateTime")?.asString ?: return null, tz) ?: start.plusHours(1)
+        val endObj   = obj.getAsJsonObject("end")   ?: return null
+        val deviceZone = ZoneId.systemDefault()
+        // Parse in whatever timezone the API returned, then normalise to device timezone.
+        // Graph may return Windows-style IDs ("Pacific Standard Time") that ZoneId.of()
+        // can't parse — fall back to device zone so the event is never silently dropped.
+        val apiTz = runCatching {
+            ZoneId.of(startObj.get("timeZone")?.asString ?: "")
+        }.getOrDefault(deviceZone)
+        val start = parseGraphDateTime(startObj.get("dateTime")?.asString ?: return null, apiTz)
+            ?.withZoneSameInstant(deviceZone) ?: return null
+        val end   = parseGraphDateTime(endObj.get("dateTime")?.asString   ?: return null, apiTz)
+            ?.withZoneSameInstant(deviceZone) ?: start.plusHours(1)
         return CalendarEvent(
             id = id, title = title, startTime = start, endTime = end,
             location = obj.getAsJsonObject("location")?.get("displayName")?.asString?.takeIf { it.isNotBlank() },
