@@ -31,22 +31,30 @@ class MicrosoftCalendarDataSource @Inject constructor(
             "id,subject,start,end,location,bodyPreview,organizer,isAllDay,attendees"
     }
 
-    /** Lightweight calendar descriptor used internally. */
+    /**
+     * Lightweight calendar descriptor used internally.
+     *
+     * @param id      GUID for calendars in /me/calendars; email address for delegate rooms.
+     * @param name    Display name.
+     * @param isOwned true = user's own calendar → events tagged calendarId=null.
+     * @param isRoom  true = Exchange room mailbox → access via /users/{email}/calendarView.
+     */
     private data class MsCalendarInfo(
         val id: String,
         val name: String,
-        /** true = user owns this calendar (personal/primary); false = delegated/managed */
-        val isOwned: Boolean
+        val isOwned: Boolean,
+        val isRoom: Boolean = false
     )
 
     // ── Public API ────────────────────────────────────────────────────────────
 
     /**
-     * Fetches events from ALL calendars the signed-in user has access to,
-     * iterating per-calendar so each event can be tagged with its [CalendarEvent.calendarId].
+     * Fetches events from ALL calendars the signed-in user has access to:
+     *  - Personal calendars from /me/calendars
+     *  - Delegate room calendars discovered via /me/findRooms
      *
-     * Personal / owned calendar events → calendarId = null (shown in "My Calendar" view).
-     * Delegated / managed calendar events → calendarId = calendar GUID (filterable by resource).
+     * Owned calendar events → calendarId = null.
+     * Room / delegated calendar events → calendarId = GUID or room email (filterable).
      */
     suspend fun fetchEvents(token: String, daysAhead: Int = 14): List<CalendarEvent> =
         withContext(Dispatchers.IO) {
@@ -55,16 +63,13 @@ class MicrosoftCalendarDataSource @Inject constructor(
             calendars.forEach { cal ->
                 runCatching {
                     val tagId = if (cal.isOwned) null else cal.id
-                    allEvents.addAll(
-                        fetchCalendarViewForCalendar(token, cal.id, cal.name, tagId, daysAhead)
-                    )
+                    allEvents.addAll(fetchCalendarView(token, cal, tagId, daysAhead))
                 }.onFailure { Timber.w(it, "Failed to fetch MS events for calendar: ${cal.id}") }
             }
-            // Deduplicate (recurring events can appear in multiple views) then sort
             allEvents.distinctBy { it.id }.sortedBy { it.startTime }
         }
 
-    /** Returns the signed-in Microsoft user's display name (e.g. "Ramkaran Rudravaram"). */
+    /** Returns the signed-in Microsoft user's display name. */
     suspend fun fetchUserDisplayName(token: String): String = withContext(Dispatchers.IO) {
         runCatching {
             val json = graphGet(token, "$GRAPH_BASE/me?\$select=displayName") ?: return@runCatching null
@@ -73,33 +78,74 @@ class MicrosoftCalendarDataSource @Inject constructor(
     }
 
     /**
-     * Returns all calendars in the signed-in user's calendar list as spinner entries —
-     * owned, shared, and delegated. Every calendar can be used to filter the meeting view.
+     * Returns delegate room calendars from /me/findRooms as spinner entries.
+     * Each entry's [CalendarResource.calendarId] is the room email address, which
+     * is also used to tag events fetched from that room so filtering works.
      *
-     * Uses only v1.0-safe properties (isSharedWithMe is beta-only → 400 on v1.0).
+     * Requires User.ReadBasic.All scope. Returns empty list gracefully if unavailable.
      */
     suspend fun fetchDelegatedCalendars(token: String): List<CalendarResource> =
         withContext(Dispatchers.IO) {
-            val url = "$GRAPH_BASE/me/calendars?\$select=id,name,canEdit,isDefaultCalendar&\$top=50"
-            val json  = graphGet(token, url) ?: return@withContext emptyList()
-            val value = json.getAsJsonArray("value") ?: return@withContext emptyList()
-            Timber.d("MS fetchDelegatedCalendars: ${value.size()} total calendars")
-            value.mapNotNull { elem ->
-                val cal       = elem.asJsonObject
-                val id        = cal.get("id")?.asString                 ?: return@mapNotNull null
-                val name      = cal.get("name")?.asString               ?: return@mapNotNull null
-                val isDefault = cal.get("isDefaultCalendar")?.asBoolean ?: false
-                val canEdit   = cal.get("canEdit")?.asBoolean           ?: false
-                Timber.d("  '$name' isDefault=$isDefault canEdit=$canEdit → included")
-                val parts = name.split(" - ", limit = 2)
-                val (building, displayName) =
-                    if (parts.size == 2) parts[0].trim() to parts[1].trim()
-                    else null to name
-                CalendarResource(calendarId = id, displayName = displayName, buildingName = building)
+            val rooms = fetchRooms(token)
+            Timber.d("MS fetchDelegatedCalendars: ${rooms.size} delegate rooms")
+            rooms.map { room ->
+                Timber.d("  room: '${room.name}' → ${room.id}")
+                CalendarResource(
+                    calendarId   = room.id,    // room email address
+                    displayName  = room.name,
+                    buildingName = null
+                )
             }
         }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Returns all calendars the user can access:
+     *  - /me/calendars (personal + shared calendars added to the mailbox)
+     *  - /me/findRooms (Exchange room mailboxes where user is a delegate)
+     */
+    private suspend fun fetchAllCalendars(token: String): List<MsCalendarInfo> {
+        val userEmail = runCatching { fetchUserEmail(token) }.getOrNull() ?: ""
+
+        // Personal calendars
+        val personal = runCatching {
+            val url = "$GRAPH_BASE/me/calendars?\$select=id,name,isDefaultCalendar,owner,canEdit&\$top=50"
+            val json = graphGet(token, url) ?: return@runCatching emptyList()
+            val value = json.getAsJsonArray("value") ?: return@runCatching emptyList()
+            value.mapNotNull { elem ->
+                val cal        = elem.asJsonObject
+                val id         = cal.get("id")?.asString                  ?: return@mapNotNull null
+                val name       = cal.get("name")?.asString                ?: return@mapNotNull null
+                val isDefault  = cal.get("isDefaultCalendar")?.asBoolean  ?: false
+                val ownerEmail = cal.getAsJsonObject("owner")?.get("address")?.asString ?: ""
+                val isOwned    = isDefault || ownerEmail.isBlank() ||
+                    ownerEmail.equals(userEmail, ignoreCase = true)
+                MsCalendarInfo(id = id, name = name, isOwned = isOwned, isRoom = false)
+            }
+        }.getOrElse { emptyList() }
+
+        // Delegate rooms
+        val rooms = runCatching { fetchRooms(token) }.getOrElse { emptyList() }
+
+        return personal + rooms
+    }
+
+    /**
+     * Calls /me/findRooms and returns Exchange room mailboxes as [MsCalendarInfo].
+     * Room entries use the room email as [MsCalendarInfo.id] and isRoom=true so
+     * callers use /users/{email}/calendarView instead of /me/calendars/{id}/calendarView.
+     */
+    private suspend fun fetchRooms(token: String): List<MsCalendarInfo> {
+        val json  = graphGet(token, "$GRAPH_BASE/me/findRooms") ?: return emptyList()
+        val value = json.getAsJsonArray("value")               ?: return emptyList()
+        return value.mapNotNull { elem ->
+            val obj     = elem.asJsonObject
+            val name    = obj.get("name")?.asString    ?: return@mapNotNull null
+            val address = obj.get("address")?.asString ?: return@mapNotNull null
+            MsCalendarInfo(id = address, name = name, isOwned = false, isRoom = true)
+        }
+    }
 
     /** Returns the signed-in user's primary email address. */
     private suspend fun fetchUserEmail(token: String): String? {
@@ -110,44 +156,22 @@ class MicrosoftCalendarDataSource @Inject constructor(
     }
 
     /**
-     * Returns all calendars in the user's calendar list, with an [MsCalendarInfo.isOwned] flag
-     * so callers can distinguish personal from delegated calendars.
+     * Fetches events for a single calendar.
+     * - Regular calendars: GET /me/calendars/{guid}/calendarView
+     * - Room mailboxes:    GET /users/{email}/calendarView  (delegate access)
      */
-    private suspend fun fetchAllCalendars(token: String): List<MsCalendarInfo> {
-        // Fetch user email to distinguish owned vs delegated calendars.
-        // If it fails use empty string — unknown ownership defaults to isOwned=true so
-        // events are never silently hidden.
-        val userEmail = runCatching { fetchUserEmail(token) }.getOrNull() ?: ""
-        val url = "$GRAPH_BASE/me/calendars" +
-            "?\$select=id,name,isDefaultCalendar,owner,canEdit&\$top=50"
-        val json = graphGet(token, url) ?: return emptyList()
-        val value = json.getAsJsonArray("value") ?: return emptyList()
-        return value.mapNotNull { elem ->
-            val cal        = elem.asJsonObject
-            val id         = cal.get("id")?.asString              ?: return@mapNotNull null
-            val name       = cal.get("name")?.asString            ?: return@mapNotNull null
-            val isDefault  = cal.get("isDefaultCalendar")?.asBoolean ?: false
-            val ownerEmail = cal.getAsJsonObject("owner")?.get("address")?.asString ?: ""
-            // Owned if: default calendar, owner matches user, or owner unknown (blank)
-            val isOwned = isDefault ||
-                ownerEmail.isBlank() ||
-                ownerEmail.equals(userEmail, ignoreCase = true)
-            MsCalendarInfo(id, name, isOwned)
-        }
-    }
-
-    /** Fetches events from a single calendar's calendarView endpoint. */
-    private suspend fun fetchCalendarViewForCalendar(
+    private suspend fun fetchCalendarView(
         token: String,
-        calendarId: String,
-        calendarName: String,
+        cal: MsCalendarInfo,
         tagCalendarId: String?,
         daysAhead: Int
     ): List<CalendarEvent> {
         val now           = ZonedDateTime.now()
         val startDateTime = now.format(ISO_FMT)
         val endDateTime   = now.plusDays(daysAhead.toLong()).format(ISO_FMT)
-        val url = "$GRAPH_BASE/me/calendars/$calendarId/calendarView" +
+        val base = if (cal.isRoom) "$GRAPH_BASE/users/${cal.id}/calendarView"
+                   else            "$GRAPH_BASE/me/calendars/${cal.id}/calendarView"
+        val url = "$base" +
             "?startDateTime=$startDateTime" +
             "&endDateTime=$endDateTime" +
             "&\$top=100" +
@@ -155,7 +179,7 @@ class MicrosoftCalendarDataSource @Inject constructor(
             "&\$orderby=start/dateTime"
         val json  = graphGet(token, url) ?: return emptyList()
         val value = json.getAsJsonArray("value") ?: return emptyList()
-        return value.mapNotNull { mapEvent(it.asJsonObject, tagCalendarId, calendarName) }
+        return value.mapNotNull { mapEvent(it.asJsonObject, tagCalendarId, cal.name) }
     }
 
     /** Executes a GET request against the Graph API and returns the parsed JSON body. */
