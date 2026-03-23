@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.vamanit.calendar.data.model.CalendarEvent
+import com.vamanit.calendar.R
 import com.vamanit.calendar.data.model.CalendarResource
 import com.vamanit.calendar.databinding.FragmentTvDashboardBinding
 import com.vamanit.calendar.ui.dashboard.DashboardViewModel
@@ -135,9 +136,9 @@ class TvDashboardFragment : Fragment() {
         val labels = calendarEntries.map { it.label }
         val spinnerAdapter = ArrayAdapter(
             requireContext(),
-            android.R.layout.simple_spinner_item,
+            R.layout.item_spinner_calendar,
             labels
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        ).also { it.setDropDownViewResource(R.layout.item_spinner_calendar) }
 
         // Preserve the user's current selection across rebuilds (lifecycle restarts re-emit
         // the cached StateFlow value and would otherwise reset the spinner to position 0).
