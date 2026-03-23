@@ -59,11 +59,14 @@ class MicrosoftCalendarDataSource @Inject constructor(
     suspend fun fetchEvents(token: String, daysAhead: Int = 14): List<CalendarEvent> =
         withContext(Dispatchers.IO) {
             val calendars = fetchAllCalendars(token)
+            Timber.d("fetchEvents: ${calendars.size} calendars (${calendars.count { it.isRoom }} rooms)")
             val allEvents = mutableListOf<CalendarEvent>()
             calendars.forEach { cal ->
                 runCatching {
                     val tagId = if (cal.isOwned) null else cal.id
-                    allEvents.addAll(fetchCalendarView(token, cal, tagId, daysAhead))
+                    val events = fetchCalendarView(token, cal, tagId, daysAhead)
+                    Timber.d("fetchEvents: '${cal.name}' isRoom=${cal.isRoom} tagId=$tagId → ${events.size} events")
+                    allEvents.addAll(events)
                 }.onFailure { Timber.w(it, "Failed to fetch MS events for calendar: ${cal.id}") }
             }
             allEvents.distinctBy { it.id }.sortedBy { it.startTime }
