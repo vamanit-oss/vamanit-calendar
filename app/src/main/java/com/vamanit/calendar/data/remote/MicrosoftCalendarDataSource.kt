@@ -73,42 +73,28 @@ class MicrosoftCalendarDataSource @Inject constructor(
     }
 
     /**
-     * Returns Microsoft calendars that were delegated / shared to the signed-in user —
-     * i.e. calendars that appear in /me/calendars whose owner is NOT the signed-in user.
+     * Returns all calendars in the signed-in user's calendar list as spinner entries —
+     * owned, shared, and delegated. Every calendar can be used to filter the meeting view.
      *
      * Uses only v1.0-safe properties (isSharedWithMe is beta-only → 400 on v1.0).
-     * `canEdit` is intentionally not required: read-only delegates should also appear.
      */
     suspend fun fetchDelegatedCalendars(token: String): List<CalendarResource> =
         withContext(Dispatchers.IO) {
-            // Best-effort email fetch; empty string means we can't exclude by owner comparison
-            val userEmail = runCatching { fetchUserEmail(token) }.getOrNull() ?: ""
-            Timber.d("MS fetchDelegatedCalendars: userEmail='$userEmail'")
-            val url = "$GRAPH_BASE/me/calendars" +
-                "?\$select=id,name,owner,canEdit,isDefaultCalendar&\$top=50"
+            val url = "$GRAPH_BASE/me/calendars?\$select=id,name,canEdit,isDefaultCalendar&\$top=50"
             val json  = graphGet(token, url) ?: return@withContext emptyList()
             val value = json.getAsJsonArray("value") ?: return@withContext emptyList()
             Timber.d("MS fetchDelegatedCalendars: ${value.size()} total calendars")
             value.mapNotNull { elem ->
-                val cal        = elem.asJsonObject
-                val id         = cal.get("id")?.asString                   ?: return@mapNotNull null
-                val name       = cal.get("name")?.asString                 ?: return@mapNotNull null
-                val isDefault  = cal.get("isDefaultCalendar")?.asBoolean   ?: false
-                val canEdit    = cal.get("canEdit")?.asBoolean              ?: false
-                val ownerEmail = cal.getAsJsonObject("owner")?.get("address")?.asString ?: ""
-                Timber.d("  '$name' isDefault=$isDefault canEdit=$canEdit owner='$ownerEmail'")
-                // Skip calendars the user owns (default calendar or email match)
-                val isOwnedByUser = isDefault ||
-                    (userEmail.isNotBlank() && ownerEmail.equals(userEmail, ignoreCase = true))
-                if (isOwnedByUser) {
-                    Timber.d("  → skipped (owned)")
-                    return@mapNotNull null
-                }
+                val cal       = elem.asJsonObject
+                val id        = cal.get("id")?.asString                 ?: return@mapNotNull null
+                val name      = cal.get("name")?.asString               ?: return@mapNotNull null
+                val isDefault = cal.get("isDefaultCalendar")?.asBoolean ?: false
+                val canEdit   = cal.get("canEdit")?.asBoolean           ?: false
+                Timber.d("  '$name' isDefault=$isDefault canEdit=$canEdit → included")
                 val parts = name.split(" - ", limit = 2)
                 val (building, displayName) =
                     if (parts.size == 2) parts[0].trim() to parts[1].trim()
                     else null to name
-                Timber.d("  → delegated resource: '$displayName' @ '$building'")
                 CalendarResource(calendarId = id, displayName = displayName, buildingName = building)
             }
         }
