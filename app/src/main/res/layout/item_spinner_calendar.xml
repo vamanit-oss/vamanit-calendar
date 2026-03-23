@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spinner item for the TV clock-panel calendar selector.
-     Explicit text colour so it stays readable on the white spinner_background
-     regardless of whether the system is in light or dark mode. -->
+     Uses notebook-palette colours so selected/pressed states are warm cream
+     tones rather than the system default blue highlight. -->
 <TextView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/spinner_item_bg"
     android:paddingStart="12dp"
     android:paddingEnd="12dp"
     android:paddingTop="10dp"
