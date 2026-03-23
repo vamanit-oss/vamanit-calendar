@@ -311,6 +311,14 @@ class TvDashboardFragment : Fragment() {
                             binding.tvTvBookingResult.setTextColor(Color.parseColor("#F83A22"))
                             roomViewModel.resetBookingState()
                         }
+                        is BookingState.NeedsReAuth -> {
+                            binding.progressTvResources.visibility = View.GONE
+                            binding.btnTvBookRoom.isEnabled = true
+                            binding.tvTvBookingResult.visibility = View.VISIBLE
+                            binding.tvTvBookingResult.text = "⚠ Re-sign in on phone to enable room booking"
+                            binding.tvTvBookingResult.setTextColor(Color.parseColor("#F83A22"))
+                            roomViewModel.resetBookingState()
+                        }
                     }
                 }
             }

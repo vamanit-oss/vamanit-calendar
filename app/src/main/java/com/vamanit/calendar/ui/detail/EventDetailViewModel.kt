@@ -2,6 +2,7 @@ package com.vamanit.calendar.ui.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.vamanit.calendar.data.model.CalendarResource
 import com.vamanit.calendar.data.remote.GoogleCalendarDataSource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,9 +22,10 @@ sealed class ResourceUiState {
 }
 
 sealed class BookingState {
-    object Idle    : BookingState()
-    object Saving  : BookingState()
-    object Success : BookingState()
+    object Idle        : BookingState()
+    object Saving      : BookingState()
+    object Success     : BookingState()
+    object NeedsReAuth : BookingState()
     data class Error(val message: String) : BookingState()
 }
 
@@ -66,7 +68,13 @@ class EventDetailViewModel @Inject constructor(
                 _bookingState.value = BookingState.Success
             }.onFailure { e ->
                 Timber.e(e, "Failed to book room")
-                _bookingState.value = BookingState.Error(e.message ?: "Failed to book room")
+                val googleError = e.cause as? GoogleJsonResponseException
+                    ?: e as? GoogleJsonResponseException
+                if (googleError != null && (googleError.statusCode == 401 || googleError.statusCode == 403)) {
+                    _bookingState.value = BookingState.NeedsReAuth
+                } else {
+                    _bookingState.value = BookingState.Error(e.message ?: "Failed to book room")
+                }
             }
         }
     }

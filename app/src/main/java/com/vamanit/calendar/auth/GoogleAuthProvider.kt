@@ -3,7 +3,10 @@ package com.vamanit.calendar.auth
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -228,8 +231,23 @@ class GoogleAuthProvider @Inject constructor(
 
     fun isSignedIn(): Boolean = getAccessToken() != null
 
-    fun buildCredential(): GoogleCredential =
-        GoogleCredential().setAccessToken(getAccessToken())
+    fun buildCredential(): GoogleCredential {
+        val transport   = GoogleNetHttpTransport.newTrustedTransport()
+        val jsonFactory = GsonFactory.getDefaultInstance()
+        val clientSecrets = GoogleClientSecrets().apply {
+            installed = GoogleClientSecrets.Details().apply {
+                clientId     = PHONE_CLIENT_ID
+                clientSecret = phoneClientSecret
+            }
+        }
+        return GoogleCredential.Builder()
+            .setTransport(transport)
+            .setJsonFactory(jsonFactory)
+            .setClientSecrets(clientSecrets)
+            .build()
+            .setAccessToken(getAccessToken())
+            .setRefreshToken(prefs.getString(KEY_REFRESH_TOKEN, null))
+    }
 
     fun signOut() {
         prefs.edit().clear().apply()
