@@ -105,7 +105,7 @@ class MicrosoftAuthProvider @Inject constructor(
             })
         }
         val account = accounts.firstOrNull() ?: return null
-        return try {
+        val token = try {
             silentWithScopes(app, account, SCOPES.toList())
         } catch (e: MsalDeclinedScopeException) {
             // AAD returns offline_access implicitly (as a refresh token) but omits it from
@@ -120,6 +120,12 @@ class MicrosoftAuthProvider @Inject constructor(
             Timber.w(e, "Silent token refresh failed")
             null
         }
+        // Sync the persisted flag with MSAL's actual account state.
+        // This covers the MsalDeclinedScopeException sign-in path where onError fires instead
+        // of onSuccess, so KEY_HAS_ACCOUNT is never set by signIn() — yet the account IS in
+        // MSAL's cache and silent refresh succeeds.
+        if (token != null) prefs.edit().putBoolean(KEY_HAS_ACCOUNT, true).apply()
+        return token
     }
 
     private suspend fun silentWithScopes(
