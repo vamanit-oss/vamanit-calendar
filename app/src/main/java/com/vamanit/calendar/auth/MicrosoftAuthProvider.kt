@@ -33,7 +33,7 @@ class MicrosoftAuthProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        val SCOPES = arrayOf("User.Read", "User.ReadBasic.All", "Calendars.Read", "offline_access")
+        val SCOPES = arrayOf("User.Read", "User.ReadBasic.All", "Calendars.Read", "Place.Read.All", "offline_access")
         private const val PREFS = "microsoft_auth"
         private const val KEY_HAS_ACCOUNT = "has_account"
     }
