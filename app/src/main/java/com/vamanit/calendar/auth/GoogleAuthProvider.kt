@@ -70,7 +70,22 @@ class GoogleAuthProvider @Inject constructor(
         const val REDIRECT_URI =
             "com.googleusercontent.apps.534654568144-qbbo6knmoqo3uqga35e0ipsq92d7dskl:/oauth2redirect"
 
+        /** Phone scopes — includes calendar.events write access for room booking. */
         val SCOPES = listOf(
+            "openid",
+            "email",
+            "profile",
+            "https://www.googleapis.com/auth/calendar.readonly",
+            "https://www.googleapis.com/auth/calendar.events"  // needed to book rooms
+        )
+
+        /**
+         * TV / Device-flow scopes — read-only.
+         * TVs are display-only; room booking is phone-only.
+         * Keeping this to the declared consent-screen scopes avoids
+         * "invalid_scope" rejections from the device-code endpoint.
+         */
+        val TV_SCOPES = listOf(
             "openid",
             "email",
             "profile",
@@ -145,7 +160,7 @@ class GoogleAuthProvider @Inject constructor(
      * then call [pollForDeviceToken] in a coroutine to await user authorization.
      */
     suspend fun requestDeviceCode(): DeviceCodeResponse = withContext(Dispatchers.IO) {
-        val body = "client_id=${TV_CLIENT_ID.enc()}&scope=${SCOPES.joinToString(" ").enc()}"
+        val body = "client_id=${TV_CLIENT_ID.enc()}&scope=${TV_SCOPES.joinToString(" ").enc()}"
         val json = postForm(DEVICE_AUTH_URL, body)
         DeviceCodeResponse(
             deviceCode      = json.getString("device_code"),

@@ -5,8 +5,10 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.model.Event
+import com.google.api.services.calendar.model.EventAttendee
 import com.vamanit.calendar.auth.GoogleAuthProvider
 import com.vamanit.calendar.data.model.CalendarEvent
+import com.vamanit.calendar.data.model.CalendarResource
 import com.vamanit.calendar.data.model.CalendarSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +56,7 @@ class GoogleCalendarDataSource @Inject constructor(
                     .setMaxResults(100)
                     .execute()
                 eventsResult.items?.forEach { event ->
-                    mapEvent(event, cal.summary, cal.backgroundColor)?.let { events.add(it) }
+                    mapEvent(event, cal.id, cal.summary, cal.backgroundColor)?.let { events.add(it) }
                 }
             }.onFailure { Timber.w(it, "Failed to fetch events for calendar: ${cal.id}") }
         }
@@ -62,7 +64,12 @@ class GoogleCalendarDataSource @Inject constructor(
         events.sortedBy { it.startTime }
     }
 
-    private fun mapEvent(event: Event, calendarName: String?, calendarColor: String?): CalendarEvent? {
+    private fun mapEvent(
+        event: Event,
+        calendarId: String?,
+        calendarName: String?,
+        calendarColor: String?
+    ): CalendarEvent? {
         if (event.summary.isNullOrBlank()) return null
         val startMs = event.start?.dateTime?.value ?: event.start?.date?.value ?: return null
         val endMs = event.end?.dateTime?.value ?: event.end?.date?.value ?: startMs
@@ -81,9 +88,78 @@ class GoogleCalendarDataSource @Inject constructor(
             organizer = event.organizer?.displayName,
             calendarName = calendarName,
             attendees = event.attendees
+                ?.filter { it.resource != true }
                 ?.mapNotNull { it.displayName?.takeIf { n -> n.isNotBlank() } ?: it.email }
-                ?: emptyList()
+                ?: emptyList(),
+            calendarId = calendarId
         )
+    }
+
+    // ── Resource calendars ────────────────────────────────────────────────────
+
+    /**
+     * Returns all resource calendars (conference rooms, etc.) the signed-in user
+     * has at least writer access to — those the user can book.
+     *
+     * Auto-generated names follow: "{Building}-{Floor}-{Name} ({Capacity})"
+     * We parse this to produce the "Name @ Building" spinner label.
+     */
+    suspend fun fetchDelegatedResources(): List<CalendarResource> = withContext(Dispatchers.IO) {
+        val service = buildService()
+        val calendarList = service.calendarList().list()
+            .setMinAccessRole("writer")
+            .execute()
+        calendarList.items
+            ?.filter { it.id.contains("@resource.calendar.google.com") }
+            ?.map { entry ->
+                val autoName = entry.summary ?: entry.id
+                // Pattern: "Building Name-Floor-Resource Name (Capacity)"
+                val match = Regex("""^(.+?)-\d+-(.+?)(?:\s*\(\d+\))?$""").find(autoName)
+                val building = match?.groupValues?.getOrNull(1)?.trim()
+                val name     = match?.groupValues?.getOrNull(2)?.trim() ?: autoName
+                CalendarResource(
+                    calendarId   = entry.id,
+                    displayName  = name,
+                    buildingName = building
+                )
+            }
+            ?: emptyList()
+    }
+
+    /** Returns the display name of the primary (personal) calendar, e.g. "Ramkaran Rudravaram". */
+    suspend fun fetchUserDisplayName(): String = withContext(Dispatchers.IO) {
+        runCatching {
+            buildService().calendars().get("primary").execute().summary ?: "My Calendar"
+        }.getOrDefault("My Calendar")
+    }
+
+    /**
+     * Books (or clears) a resource room on a Google Calendar event.
+     *
+     * Pass [resourceCalendarId] = null to remove any existing room booking.
+     * Requires the `calendar.events` write scope to be granted.
+     */
+    suspend fun patchEventRoom(
+        calendarId: String,
+        eventId: String,
+        resourceCalendarId: String?
+    ) = withContext(Dispatchers.IO) {
+        val service = buildService()
+        // Fetch current event attendees (non-resource people) so we don't wipe them
+        val current = service.events().get(calendarId, eventId).execute()
+        val people  = current.attendees?.filter { it.resource != true } ?: emptyList()
+
+        val newAttendees: List<EventAttendee> = if (resourceCalendarId != null) {
+            people + listOf(EventAttendee().setEmail(resourceCalendarId).setResource(true))
+        } else {
+            people
+        }
+
+        val patch = Event().apply { attendees = newAttendees }
+        service.events().patch(calendarId, eventId, patch)
+            .setSendUpdates("none")
+            .execute()
+        Timber.d("Patched event $eventId: room → $resourceCalendarId")
     }
 
     private fun mapGoogleColor(colorId: String): String? = when (colorId) {
