@@ -1,0 +1,266 @@
+From f48b54bf2c42cf565504a4f6db4bcd6d41eb5c5a Mon Sep 17 00:00:00 2001
+From: Raja Ramkaran Reddy Rudravaram <ramkaran@rcvinnovations.com>
+Date: Thu, 19 Mar 2026 05:12:48 -0500
+Subject: [PATCH] Fix edge-to-edge: replace deprecated
+ statusBarColor/navigationBarColor with enableEdgeToEdge() +
+ WindowInsetsCompat
+
+- Remove android:statusBarColor and android:navigationBarColor from both themes.xml
+  (deprecated and ignored on API 35+)
+- Add enableEdgeToEdge() call before super.onCreate() in all 3 Activities
+- Add ViewCompat.setOnApplyWindowInsetsListener for proper system bar inset handling
+- Add androidx.core:core-ktx 1.15.0 dependency for WindowInsetsCompat APIs
+- Bump versionCode to 2, versionName to 1.1.0
+
+Resolves Play Console warnings:
+  - "Edge-to-edge may not display for all users"
+  - "Your app uses deprecated APIs or parameters for edge-to-edge"
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+---
+ app/build.gradle.kts                          |  5 ++--
+ .../ui/dashboard/DashboardActivity.kt         | 18 ++++++++++++
+ .../calendar/ui/detail/EventDetailActivity.kt | 29 +++++++++++++++----
+ .../calendar/ui/signin/SignInActivity.kt      | 17 +++++++++++
+ app/src/main/res/values-night/themes.xml      |  4 +--
+ app/src/main/res/values/themes.xml            |  4 +--
+ gradle/libs.versions.toml                     |  2 ++
+ 7 files changed, 67 insertions(+), 12 deletions(-)
+
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index 682eed9..97afb16 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -13,8 +13,8 @@ android {
+         applicationId = "com.vamanit.calendar"
+         minSdk = 26  // azure-core (MS Graph SDK) requires API 26+
+         targetSdk = 35
+-        versionCode = 1
+-        versionName = "1.0.0"
++        versionCode = 2
++        versionName = "1.1.0"
+     }
+ 
+     buildTypes {
+@@ -71,6 +71,7 @@ dependencies {
+     implementation(libs.lifecycle.viewmodel)
+     implementation(libs.lifecycle.runtime)
+     implementation(libs.activity.ktx)
++    implementation(libs.core.ktx)
+     implementation(libs.fragment.ktx)
+     implementation(libs.recyclerview)
+     implementation(libs.workmanager)
+diff --git a/app/src/main/java/com/vamanit/calendar/ui/dashboard/DashboardActivity.kt b/app/src/main/java/com/vamanit/calendar/ui/dashboard/DashboardActivity.kt
+index 38b70b8..9a0af6a 100644
+--- a/app/src/main/java/com/vamanit/calendar/ui/dashboard/DashboardActivity.kt
++++ b/app/src/main/java/com/vamanit/calendar/ui/dashboard/DashboardActivity.kt
+@@ -4,8 +4,12 @@ import android.app.UiModeManager
+ import android.content.Context
+ import android.content.res.Configuration
+ import android.os.Bundle
++import androidx.activity.enableEdgeToEdge
+ import androidx.activity.viewModels
+ import androidx.appcompat.app.AppCompatActivity
++import androidx.core.view.ViewCompat
++import androidx.core.view.WindowInsetsCompat
++import androidx.core.view.updatePadding
+ import androidx.work.WorkManager
+ import com.vamanit.calendar.databinding.ActivityDashboardBinding
+ import com.vamanit.calendar.ui.phone.PhoneAgendaFragment
+@@ -20,10 +24,24 @@ class DashboardActivity : AppCompatActivity() {
+     val viewModel: DashboardViewModel by viewModels()
+ 
+     override fun onCreate(savedInstanceState: Bundle?) {
++        enableEdgeToEdge()
+         super.onCreate(savedInstanceState)
+         binding = ActivityDashboardBinding.inflate(layoutInflater)
+         setContentView(binding.root)
+ 
++        // Apply window insets so content doesn't draw behind system bars (phone only;
++        // TV has no visible system bars, but the padding is harmless there).
++        ViewCompat.setOnApplyWindowInsetsListener(binding.fragmentContainer) { view, windowInsets ->
++            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
++            view.updatePadding(
++                left = insets.left,
++                top = insets.top,
++                right = insets.right,
++                bottom = insets.bottom
++            )
++            WindowInsetsCompat.CONSUMED
++        }
++
+         if (savedInstanceState == null) {
+             val fragment = if (isTelevision()) TvDashboardFragment() else PhoneAgendaFragment()
+             supportFragmentManager.beginTransaction()
+diff --git a/app/src/main/java/com/vamanit/calendar/ui/detail/EventDetailActivity.kt b/app/src/main/java/com/vamanit/calendar/ui/detail/EventDetailActivity.kt
+index 209c7d3..0b063f7 100644
+--- a/app/src/main/java/com/vamanit/calendar/ui/detail/EventDetailActivity.kt
++++ b/app/src/main/java/com/vamanit/calendar/ui/detail/EventDetailActivity.kt
+@@ -4,7 +4,11 @@ import android.content.Context
+ import android.content.Intent
+ import android.graphics.Color
+ import android.os.Bundle
++import androidx.activity.enableEdgeToEdge
+ import androidx.appcompat.app.AppCompatActivity
++import androidx.core.view.ViewCompat
++import androidx.core.view.WindowInsetsCompat
++import androidx.core.view.updatePadding
+ import com.vamanit.calendar.data.model.CalendarSource
+ import com.vamanit.calendar.databinding.ActivityEventDetailBinding
+ import java.time.LocalDate
+@@ -16,10 +20,23 @@ class EventDetailActivity : AppCompatActivity() {
+     private lateinit var binding: ActivityEventDetailBinding
+ 
+     override fun onCreate(savedInstanceState: Bundle?) {
++        enableEdgeToEdge()
+         super.onCreate(savedInstanceState)
+         binding = ActivityEventDetailBinding.inflate(layoutInflater)
+         setContentView(binding.root)
+ 
++        // Apply window insets so content doesn't draw behind system bars
++        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
++            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
++            view.updatePadding(
++                left = insets.left,
++                top = insets.top,
++                right = insets.right,
++                bottom = insets.bottom
++            )
++            WindowInsetsCompat.CONSUMED
++        }
++
+         binding.btnBack.setOnClickListener { finish() }
+ 
+         val title        = intent.getStringExtra(EXTRA_TITLE) ?: ""
+@@ -55,7 +72,7 @@ class EventDetailActivity : AppCompatActivity() {
+                 java.time.ZoneId.of(startZone)
+             )
+             val dateFmt = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy")
+-            "All day · ${start.format(dateFmt)}"
++            "All day \u00b7 ${start.format(dateFmt)}"
+         } else {
+             val start = ZonedDateTime.ofInstant(
+                 java.time.Instant.ofEpochMilli(startEpoch),
+@@ -68,20 +85,20 @@ class EventDetailActivity : AppCompatActivity() {
+             val dateFmt = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy")
+             val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+             if (start.toLocalDate() == end.toLocalDate()) {
+-                "${start.format(dateFmt)} · ${start.format(timeFmt)} – ${end.format(timeFmt)}"
++                "${start.format(dateFmt)} \u00b7 ${start.format(timeFmt)} \u2013 ${end.format(timeFmt)}"
+             } else {
+-                "${start.format(dateFmt)} ${start.format(timeFmt)} – ${end.format(dateFmt)} ${end.format(timeFmt)}"
++                "${start.format(dateFmt)} ${start.format(timeFmt)} \u2013 ${end.format(dateFmt)} ${end.format(timeFmt)}"
+             }
+         }
+ 
+         // Location / Room
+-        binding.tvLocation.text = location?.takeIf { it.isNotBlank() } ?: "—"
++        binding.tvLocation.text = location?.takeIf { it.isNotBlank() } ?: "\u2014"
+ 
+         // Attendees
+-        binding.tvAttendees.text = if (attendees.isEmpty()) "—" else attendees.joinToString("\n")
++        binding.tvAttendees.text = if (attendees.isEmpty()) "\u2014" else attendees.joinToString("\n")
+ 
+         // Description / Agenda
+-        binding.tvDescription.text = description?.takeIf { it.isNotBlank() } ?: "—"
++        binding.tvDescription.text = description?.takeIf { it.isNotBlank() } ?: "\u2014"
+     }
+ 
+     companion object {
+diff --git a/app/src/main/java/com/vamanit/calendar/ui/signin/SignInActivity.kt b/app/src/main/java/com/vamanit/calendar/ui/signin/SignInActivity.kt
+index f4543d0..f1db380 100644
+--- a/app/src/main/java/com/vamanit/calendar/ui/signin/SignInActivity.kt
++++ b/app/src/main/java/com/vamanit/calendar/ui/signin/SignInActivity.kt
+@@ -5,9 +5,13 @@ import android.content.Intent
+ import android.content.res.Configuration
+ import android.os.Bundle
+ import android.view.View
++import androidx.activity.enableEdgeToEdge
+ import androidx.activity.result.contract.ActivityResultContracts
+ import androidx.activity.viewModels
+ import androidx.appcompat.app.AppCompatActivity
++import androidx.core.view.ViewCompat
++import androidx.core.view.WindowInsetsCompat
++import androidx.core.view.updatePadding
+ import androidx.lifecycle.Lifecycle
+ import androidx.lifecycle.lifecycleScope
+ import androidx.lifecycle.repeatOnLifecycle
+@@ -39,6 +43,7 @@ class SignInActivity : AppCompatActivity() {
+     }
+ 
+     override fun onCreate(savedInstanceState: Bundle?) {
++        enableEdgeToEdge()
+         super.onCreate(savedInstanceState)
+ 
+         // Skip sign-in if already authenticated
+@@ -50,6 +55,18 @@ class SignInActivity : AppCompatActivity() {
+         binding = ActivitySignInBinding.inflate(layoutInflater)
+         setContentView(binding.root)
+ 
++        // Apply window insets so content doesn't draw behind system bars
++        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
++            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
++            view.updatePadding(
++                left = insets.left,
++                top = insets.top,
++                right = insets.right,
++                bottom = insets.bottom
++            )
++            WindowInsetsCompat.CONSUMED
++        }
++
+         setupClickListeners()
+         observeAuthState()
+         observeDeviceFlowState()
+diff --git a/app/src/main/res/values-night/themes.xml b/app/src/main/res/values-night/themes.xml
+index 8e9ae79..1727cd9 100644
+--- a/app/src/main/res/values-night/themes.xml
++++ b/app/src/main/res/values-night/themes.xml
+@@ -7,7 +7,7 @@
+         <item name="colorOnPrimary">@color/text_primary</item>
+         <item name="colorSecondary">@color/accent</item>
+         <item name="android:windowBackground">@color/bg_dark</item>
+-        <item name="android:statusBarColor">@color/card_bg</item>
+-        <item name="android:navigationBarColor">@color/bg_dark</item>
++        <!-- statusBarColor and navigationBarColor removed — deprecated on API 35+.
++             Edge-to-edge is now handled via enableEdgeToEdge() in each Activity. -->
+     </style>
+ </resources>
+diff --git a/app/src/main/res/values/themes.xml b/app/src/main/res/values/themes.xml
+index f1460bb..eb04a31 100644
+--- a/app/src/main/res/values/themes.xml
++++ b/app/src/main/res/values/themes.xml
+@@ -6,8 +6,8 @@
+         <item name="colorOnPrimary">@color/text_primary</item>
+         <item name="colorSecondary">@color/accent</item>
+         <item name="android:windowBackground">@color/bg_dark</item>
+-        <item name="android:statusBarColor">@color/card_bg</item>
+-        <item name="android:navigationBarColor">@color/bg_dark</item>
++        <!-- statusBarColor and navigationBarColor removed — deprecated on API 35+.
++             Edge-to-edge is now handled via enableEdgeToEdge() in each Activity. -->
+         <item name="android:textColorPrimary">@color/text_primary</item>
+         <item name="android:textColorSecondary">@color/text_secondary</item>
+     </style>
+diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
+index d17bbd0..a9fac0e 100644
+--- a/gradle/libs.versions.toml
++++ b/gradle/libs.versions.toml
+@@ -4,6 +4,7 @@ agp                     = "8.7.3"
+ coroutines              = "1.9.0"
+ lifecycle               = "2.8.7"
+ activity                = "1.9.3"
++core                    = "1.15.0"
+ fragment                = "1.8.5"
+ recyclerview            = "1.3.2"
+ workmanager             = "2.10.0"
+@@ -36,6 +37,7 @@ coroutines-core          = { group = "org.jetbrains.kotlinx", name = "kotlinx-co
+ lifecycle-viewmodel      = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+ lifecycle-runtime        = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+ activity-ktx             = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity" }
++core-ktx                 = { group = "androidx.core", name = "core-ktx", version.ref = "core" }
+ fragment-ktx             = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragment" }
+ recyclerview             = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
+ workmanager              = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workmanager" }
+-- 
+2.34.1
+
