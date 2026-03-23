@@ -72,6 +72,14 @@ class MicrosoftCalendarDataSource @Inject constructor(
      * Owner-email comparison is intentionally avoided: UPN vs SMTP address mismatches
      * in Exchange make it unreliable. [isDefaultCalendar] is the authoritative flag.
      */
+    /** Returns the signed-in Microsoft user's display name (e.g. "Ramkaran Rudravaram"). */
+    suspend fun fetchUserDisplayName(token: String): String = withContext(Dispatchers.IO) {
+        runCatching {
+            val json = graphGet(token, "$GRAPH_BASE/me?\$select=displayName") ?: return@runCatching null
+            json.get("displayName")?.asString?.takeIf { it.isNotBlank() }
+        }.getOrNull() ?: "My Calendar"
+    }
+
     /**
      * Returns Microsoft calendars where the signed-in user is a manager or delegate.
      * Uses canEdit + isDefaultCalendar (v1.0-safe properties only — isSharedWithMe is

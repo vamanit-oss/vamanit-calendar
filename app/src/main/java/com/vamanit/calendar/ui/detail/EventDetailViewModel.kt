@@ -36,35 +36,35 @@ class EventDetailViewModel @Inject constructor(
     fun loadResources() {
         viewModelScope.launch {
             _resourceState.value = ResourceUiState.Loading
+
+            // ── Google: display name + delegated resource calendars ──
+            // Wrapped independently — a Google failure (e.g. not signed in) must NOT
+            // block Microsoft resources from loading.
+            var userName        = "My Calendar"
+            var googleResources = emptyList<CalendarResource>()
             runCatching {
-                // ── Google: display name + delegated resource calendars ──
-                val name            = googleDataSource.fetchUserDisplayName()
-                val googleResources = googleDataSource.fetchDelegatedResources()
+                userName        = googleDataSource.fetchUserDisplayName()
+                googleResources = googleDataSource.fetchDelegatedResources()
+            }.onFailure { Timber.w(it, "Google resources unavailable (not signed in?)") }
 
-                // ── Microsoft: calendars where user is manager/delegate ──
-                // Guard with isSignedIn() first — avoids touching MSAL (which can hang
-                // on initialize()) when the user has never signed in with Microsoft.
-                // withTimeout ensures a stuck MSAL callback never blocks the spinner.
-                val msResources: List<CalendarResource> = if (!microsoftAuth.isSignedIn()) {
-                    emptyList()
-                } else {
-                    runCatching {
-                        withTimeout(10_000) {
-                            val token = microsoftAuth.acquireTokenSilent()
-                            if (token != null) microsoftDataSource.fetchManagedResources(token)
-                            else emptyList()
+            // ── Microsoft: display name fallback + managed/delegate calendars ──
+            // Guard with isSignedIn() first — avoids touching MSAL when not signed in.
+            // withTimeout ensures a stuck MSAL callback never blocks the spinner.
+            var msResources = emptyList<CalendarResource>()
+            if (microsoftAuth.isSignedIn()) {
+                runCatching {
+                    withTimeout(10_000) {
+                        val token = microsoftAuth.acquireTokenSilent() ?: return@withTimeout
+                        // Use Microsoft display name if Google didn't provide one
+                        if (userName == "My Calendar") {
+                            userName = microsoftDataSource.fetchUserDisplayName(token)
                         }
-                    }.onFailure { Timber.w(it, "Microsoft managed resources failed — skipping") }
-                        .getOrDefault(emptyList())
-                }
-
-                ResourceUiState.Ready(name, googleResources + msResources)
-            }.onSuccess { state ->
-                _resourceState.value = state
-            }.onFailure { e ->
-                Timber.e(e, "Failed to load resource calendars")
-                _resourceState.value = ResourceUiState.Error(e.message ?: "Failed to load rooms")
+                        msResources = microsoftDataSource.fetchManagedResources(token)
+                    }
+                }.onFailure { Timber.w(it, "Microsoft resources failed — skipping") }
             }
+
+            _resourceState.value = ResourceUiState.Ready(userName, googleResources + msResources)
         }
     }
 }
