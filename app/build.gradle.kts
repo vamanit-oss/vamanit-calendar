@@ -19,9 +19,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../thinkcloud-upload.jks")
-            storePassword = "thinkcloud2026"
-            keyAlias = "thinkcloud"
-            keyPassword = "thinkcloud2026"
+            storePassword = localProps.getProperty("KEYSTORE_PASSWORD")
+            keyAlias = localProps.getProperty("KEY_ALIAS", "thinkcloud")
+            keyPassword = localProps.getProperty("KEY_PASSWORD")
         }
     }
 
@@ -133,6 +133,9 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.gson)
     implementation(libs.timber)
+
+    // Encrypted SharedPreferences — token + secret storage (Apache 2.0)
+    implementation(libs.security.crypto)
 
     // Play Integrity API — device / app attestation
     implementation(libs.play.integrity)

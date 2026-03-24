@@ -3,6 +3,8 @@ package com.vamanit.calendar.auth
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
@@ -92,7 +94,12 @@ class GoogleAuthProvider @Inject constructor(
         private const val KEY_REFRESH_TOKEN = "refresh_token"
     }
 
-    private val prefs       = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = EncryptedSharedPreferences.create(
+        context, PREFS,
+        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
     private val authService = AuthorizationService(context)
 
     private val serviceConfig = AuthorizationServiceConfiguration(

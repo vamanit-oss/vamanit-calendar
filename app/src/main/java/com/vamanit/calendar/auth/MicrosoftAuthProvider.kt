@@ -2,6 +2,8 @@ package com.vamanit.calendar.auth
 
 import android.app.Activity
 import android.content.Context
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.microsoft.identity.client.*
 import com.microsoft.identity.client.exception.MsalDeclinedScopeException
 import com.microsoft.identity.client.exception.MsalException
@@ -38,7 +40,12 @@ class MicrosoftAuthProvider @Inject constructor(
         private const val KEY_HAS_ACCOUNT = "has_account"
     }
 
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = EncryptedSharedPreferences.create(
+        context, PREFS,
+        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
     private var msalApp: IMultipleAccountPublicClientApplication? = null
 
     suspend fun initialize() {

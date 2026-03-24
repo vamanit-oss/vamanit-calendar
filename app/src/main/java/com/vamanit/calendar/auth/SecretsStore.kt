@@ -1,6 +1,8 @@
 package com.vamanit.calendar.auth
 
 import android.content.Context
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.vamanit.calendar.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -27,7 +29,12 @@ class SecretsStore @Inject constructor(
         private const val KEY_TV_CLIENT_SECRET    = "tv_client_secret"
     }
 
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = EncryptedSharedPreferences.create(
+        context, PREFS,
+        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
 
     /**
      * True when setup should be skipped / is already complete.
