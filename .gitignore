@@ -44,3 +44,15 @@ build/
 local.properties
 docs/node_modules/
 docs/package-lock.json
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Android SDK tools (symlinks)
+platform-tools/
+
+# Sensitive documents
+*.docx
+*.pdf
+Offer_Letter_*
