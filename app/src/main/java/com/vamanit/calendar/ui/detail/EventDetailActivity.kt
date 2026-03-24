@@ -4,23 +4,14 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.view.View
-import android.widget.ArrayAdapter
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import com.vamanit.calendar.R
-import com.vamanit.calendar.data.model.CalendarResource
 import com.vamanit.calendar.data.model.CalendarSource
 import com.vamanit.calendar.databinding.ActivityEventDetailBinding
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -29,10 +20,6 @@ import java.time.format.DateTimeFormatter
 class EventDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityEventDetailBinding
-    private val viewModel: EventDetailViewModel by viewModels()
-
-    /** All spinner items — first entry is always the personal "no room" item. */
-    private var spinnerItems = listOf<SpinnerEntry>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -63,12 +50,6 @@ class EventDetailActivity : AppCompatActivity() {
         val isAllDay     = intent.getBooleanExtra(EXTRA_IS_ALL_DAY, false)
         val startEpoch   = intent.getLongExtra(EXTRA_START_EPOCH, 0L)
         val endEpoch     = intent.getLongExtra(EXTRA_END_EPOCH, 0L)
-        val deviceZone   = ZoneId.systemDefault().id
-        val startZone    = intent.getStringExtra(EXTRA_START_ZONE) ?: deviceZone
-        val endZone      = intent.getStringExtra(EXTRA_END_ZONE) ?: deviceZone
-        val calendarId   = intent.getStringExtra(EXTRA_CALENDAR_ID)
-        val eventId      = intent.getStringExtra(EXTRA_EVENT_ID) ?: ""
-
         val calSource = runCatching { CalendarSource.valueOf(source) }.getOrDefault(CalendarSource.GOOGLE)
         val fallbackColor = calSource.colorFallback
         val eventColor = try {
@@ -154,9 +135,4 @@ class EventDetailActivity : AppCompatActivity() {
             }
     }
 
-    /** A single entry in the room-picker spinner. */
-    private data class SpinnerEntry(
-        val label: String,
-        val resource: CalendarResource?   // null = personal calendar (no room booking)
-    )
 }

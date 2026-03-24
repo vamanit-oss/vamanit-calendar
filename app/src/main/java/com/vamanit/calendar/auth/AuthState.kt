@@ -2,7 +2,6 @@ package com.vamanit.calendar.auth
 
 sealed class AuthState {
     object Unauthenticated : AuthState()
-    object Loading : AuthState()
     data class Authenticated(
         val googleToken: String? = null,
         val microsoftToken: String? = null
