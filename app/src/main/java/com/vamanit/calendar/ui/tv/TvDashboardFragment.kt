@@ -162,7 +162,7 @@ class TvDashboardFragment : Fragment() {
                     parent: AdapterView<*>?, v: View?, position: Int, id: Long
                 ) {
                     val newId = calendarEntries.getOrNull(position)?.resource?.calendarId
-                    if (newId == selectedCalendarId) return  // no real change — ignore
+                    if (newId == selectedCalendarId) return
                     selectedCalendarId = newId
                     renderEvents(viewModel.events.value, DateTimeFormatter.ofPattern("HH:mm"))
                 }
@@ -176,12 +176,31 @@ class TvDashboardFragment : Fragment() {
      * Filters [allEvents] by [selectedCalendarId] (null = show all),
      * populates the next-meeting card and remaining list, returns the next event.
      */
+    /**
+     * Filters events for the selected room calendar.
+     * Includes events that CAME FROM the room mailbox (calendarId == roomId)
+     * OR that have the room email in attendees (personal copy of a room-booked meeting).
+     * Deduplicates by title+start so the same event isn't shown twice.
+     */
+    private fun filterByCalendar(
+        events: List<CalendarEvent>,
+        calendarId: String?
+    ): List<CalendarEvent> {
+        if (calendarId == null) return events
+        val roomEmail = calendarId.lowercase()
+        return events
+            .filter { e ->
+                e.calendarId == calendarId ||
+                e.attendees.any { it.lowercase() == roomEmail }
+            }
+            .distinctBy { "${it.title}|${it.startTime}" }
+    }
+
     private fun renderEvents(
         allEvents: List<CalendarEvent>,
         timeFmt: DateTimeFormatter
     ): CalendarEvent? {
-        val events = if (selectedCalendarId == null) allEvents
-                     else allEvents.filter { it.calendarId == selectedCalendarId }
+        val events = filterByCalendar(allEvents, selectedCalendarId)
 
         val now       = ZonedDateTime.now()
         val nextIdx   = events.indexOfFirst { !it.endTime.isBefore(now) }

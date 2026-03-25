@@ -1,0 +1,24 @@
+{
+  "name": "vamanit-calendar-functions",
+  "description": "Firebase Cloud Functions — webhook receiver + FCM push for Vamanit Calendar",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": "20" },
+  "main": "lib/index.js",
+  "scripts": {
+    "build":   "tsc",
+    "watch":   "tsc --watch",
+    "serve":   "npm run build && firebase emulators:start --only functions",
+    "deploy":  "npm run build && firebase deploy --only functions",
+    "logs":    "firebase functions:log"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0",
+    "firebase-functions-test": "^3.2.0"
+  }
+}

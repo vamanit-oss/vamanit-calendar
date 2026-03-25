@@ -214,6 +214,22 @@
 
     </LinearLayout>
 
+    <!-- Watch demo link -->
+    <TextView
+        android:id="@+id/tv_watch_demo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/watch_demo"
+        android:textColor="@color/accent"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:paddingBottom="4dp"
+        android:focusable="true"
+        android:clickable="true"
+        app:layout_constraintBottom_toTopOf="@id/tv_license"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- License note -->
     <TextView
         android:id="@+id/tv_license"

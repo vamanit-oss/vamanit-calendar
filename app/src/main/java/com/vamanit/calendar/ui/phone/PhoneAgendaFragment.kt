@@ -2,6 +2,7 @@ package com.vamanit.calendar.ui.phone
 
 import android.content.Intent
 import android.os.Bundle
+import com.vamanit.calendar.data.model.CalendarEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -75,8 +76,7 @@ class PhoneAgendaFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.events.collect { allEvents ->
-                    val filtered = if (selectedCalendarId == null) allEvents
-                                   else allEvents.filter { it.calendarId == selectedCalendarId }
+                    val filtered = filterByCalendar(allEvents, selectedCalendarId)
                     adapter.submitList(filtered.toAgendaItems())
                     binding.swipeRefresh.isRefreshing = false
                     binding.tvEmptyState.visibility =
@@ -132,16 +132,36 @@ class PhoneAgendaFragment : Fragment() {
                     val newId = calendarEntries.getOrNull(position)?.resource?.calendarId
                     if (newId == selectedCalendarId) return
                     selectedCalendarId = newId
-                    // Re-filter with current events snapshot
                     val allEvents = viewModel.events.value
-                    val filtered = if (selectedCalendarId == null) allEvents
-                                   else allEvents.filter { it.calendarId == selectedCalendarId }
+                    val filtered = filterByCalendar(allEvents, selectedCalendarId)
                     adapter.submitList(filtered.toAgendaItems())
                     binding.tvEmptyState.visibility =
                         if (filtered.isEmpty()) View.VISIBLE else View.GONE
                 }
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
+    }
+
+    /**
+     * Filters [events] for the given [calendarId]:
+     *  - null  → show everything (personal view)
+     *  - roomId → show events that either CAME FROM the room's own mailbox
+     *             (calendarId == roomId) OR have the room email in their attendees
+     *             (personal copy of a room-booked meeting).
+     * Both copies are deduplicated by title+start so the same meeting isn't shown twice.
+     */
+    private fun filterByCalendar(
+        events: List<CalendarEvent>,
+        calendarId: String?
+    ): List<CalendarEvent> {
+        if (calendarId == null) return events
+        val roomEmail = calendarId.lowercase()
+        return events
+            .filter { e ->
+                e.calendarId == calendarId ||
+                e.attendees.any { it.lowercase() == roomEmail }
+            }
+            .distinctBy { "${it.title}|${it.startTime}" }
     }
 
     override fun onDestroyView() {

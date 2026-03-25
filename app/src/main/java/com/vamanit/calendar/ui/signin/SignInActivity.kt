@@ -2,6 +2,7 @@ package com.vamanit.calendar.ui.signin
 
 import android.app.UiModeManager
 import android.content.Intent
+import android.net.Uri
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
@@ -111,6 +112,10 @@ class SignInActivity : AppCompatActivity() {
             runWithIntegrityCheck(action = "microsoft_sign_in") {
                 viewModel.signInWithMicrosoft(this)
             }
+        }
+
+        binding.tvWatchDemo.setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(com.vamanit.calendar.R.string.youtube_demo_url))))
         }
     }
 

@@ -19,7 +19,8 @@ import javax.inject.Singleton
 @Singleton
 class MicrosoftCalendarDataSource @Inject constructor(
     private val httpClient: OkHttpClient,
-    private val gson: Gson
+    private val gson: Gson,
+    private val deltaStore: MsDeltaStore
 ) {
     companion object {
         private const val GRAPH_BASE = "https://graph.microsoft.com/v1.0"
@@ -71,6 +72,73 @@ class MicrosoftCalendarDataSource @Inject constructor(
             }
             allEvents.distinctBy { it.id }.sortedBy { it.startTime }
         }
+
+    /**
+     * Polls for changes since the last full sync using the stored delta link.
+     *
+     * Returns true if Graph reports any event changes (created / updated / deleted)
+     * since the last sync — meaning the caller should trigger a full refresh.
+     * Returns false when nothing changed (no UI update needed).
+     *
+     * Falls back to a full fetch (and saves a new delta link) when no stored
+     * delta link exists yet.
+     */
+    suspend fun hasChangedSinceDelta(token: String, daysAhead: Int = 30): Boolean =
+        withContext(Dispatchers.IO) {
+            // deltaLinkForWindow clears and returns null if daysAhead changed
+            val link = deltaStore.deltaLinkForWindow(daysAhead)
+            if (link == null) {
+                Timber.d("MS delta: no baseline for ${daysAhead}d window — seeding")
+                seedDeltaBaseline(token, daysAhead)
+                return@withContext false
+            }
+
+            // Walk the delta pages; any non-empty value array = something changed
+            var nextUrl: String? = link
+            var changed = false
+            while (nextUrl != null) {
+                val json = graphGet(token, nextUrl) ?: break
+                val value = json.getAsJsonArray("value")
+                if (value != null && value.size() > 0) {
+                    changed = true
+                    Timber.d("MS delta: ${value.size()} change(s) detected")
+                }
+                val newDelta = json.get("@odata.deltaLink")?.asString
+                val nextLink = json.get("@odata.nextLink")?.asString
+                if (newDelta != null) {
+                    deltaStore.saveDeltaLink(newDelta, daysAhead)
+                    nextUrl = null
+                } else {
+                    nextUrl = nextLink
+                }
+            }
+            changed
+        }
+
+    /** Clears the stored delta link, forcing a full re-seed on the next poll. */
+    fun invalidateDelta() = deltaStore.clear()
+
+    /** Walks all delta pages to establish a baseline link without returning events. */
+    private fun seedDeltaBaseline(token: String, daysAhead: Int) {
+        val now   = ZonedDateTime.now()
+        val start = now.format(ISO_FMT)
+        val end   = now.plusDays(daysAhead.toLong()).format(ISO_FMT)
+        val seed  = "$GRAPH_BASE/me/calendarView/delta" +
+            "?startDateTime=$start&endDateTime=$end&\$select=$EVENT_SELECT"
+        var nextUrl: String? = seed
+        while (nextUrl != null) {
+            val json = graphGet(token, nextUrl) ?: break
+            val newDelta = json.get("@odata.deltaLink")?.asString
+            val nextLink = json.get("@odata.nextLink")?.asString
+            if (newDelta != null) {
+                deltaStore.saveDeltaLink(newDelta, daysAhead)
+                Timber.d("MS delta: baseline seeded (${daysAhead}d) → ${newDelta.take(60)}…")
+                nextUrl = null
+            } else {
+                nextUrl = nextLink
+            }
+        }
+    }
 
     /** Returns the signed-in Microsoft user's display name. */
     suspend fun fetchUserDisplayName(token: String): String = withContext(Dispatchers.IO) {

@@ -57,6 +57,23 @@ class AuthManager @Inject constructor(
         _authState.value = AuthState.Authenticated(googleToken = googleToken, microsoftToken = token)
     }
 
+    /**
+     * Always fetches a fresh Microsoft access token via MSAL's silent refresh
+     * (uses the stored refresh token, no browser required).
+     *
+     * Also updates the shared authState so all observers see the latest token.
+     * Call this before every Graph API request to avoid stale-token 401s.
+     */
+    suspend fun getFreshMicrosoftToken(): String? {
+        val token = runCatching { microsoft.acquireTokenSilent() }.getOrNull()
+        if (token != null) {
+            val current    = _authState.value
+            val googleTok  = if (current is AuthState.Authenticated) current.googleToken else null
+            _authState.emit(AuthState.Authenticated(googleToken = googleTok, microsoftToken = token))
+        }
+        return token
+    }
+
     fun signOutAll() {
         google.signOut()
         scope.launch {

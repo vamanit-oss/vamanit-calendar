@@ -227,6 +227,16 @@ class GoogleAuthProvider @Inject constructor(
 
     fun isSignedIn(): Boolean = getAccessToken() != null
 
+    fun buildCalendarService(): com.google.api.services.calendar.Calendar {
+        val transport   = GoogleNetHttpTransport.newTrustedTransport()
+        val jsonFactory = GsonFactory.getDefaultInstance()
+        return com.google.api.services.calendar.Calendar.Builder(
+            transport, jsonFactory, buildCredential()
+        )
+            .setApplicationName("Vamanit Calendar")
+            .build()
+    }
+
     fun buildCredential(): GoogleCredential {
         val transport   = GoogleNetHttpTransport.newTrustedTransport()
         val jsonFactory = GsonFactory.getDefaultInstance()

@@ -29,13 +29,30 @@ android {
         applicationId = "com.vamanit.calendar"
         minSdk = 26  // azure-core (MS Graph SDK) requires API 26+
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.7.0"
+        versionCode = 8
+        versionName = "1.8.0"
 
         buildConfigField("String", "PHONE_CLIENT_SECRET",
             "\"${localProps.getProperty("PHONE_CLIENT_SECRET", "")}\"")
         buildConfigField("String", "TV_CLIENT_SECRET",
             "\"${localProps.getProperty("TV_CLIENT_SECRET", "")}\"")
+
+        // Firebase FCM — populate from local.properties to enable push notifications
+        // Leave empty to run without push (WorkManager fallback still active)
+        buildConfigField("String", "FIREBASE_PROJECT_ID",
+            "\"${localProps.getProperty("FIREBASE_PROJECT_ID", "")}\"")
+        buildConfigField("String", "FIREBASE_APP_ID",
+            "\"${localProps.getProperty("FIREBASE_APP_ID", "")}\"")
+        buildConfigField("String", "FIREBASE_API_KEY",
+            "\"${localProps.getProperty("FIREBASE_API_KEY", "")}\"")
+        buildConfigField("String", "FIREBASE_SENDER_ID",
+            "\"${localProps.getProperty("FIREBASE_SENDER_ID", "")}\"")
+
+        // Cloud Functions webhook base URL — required for Graph + Google push subscriptions
+        // e.g. https://us-central1-<your-project>.cloudfunctions.net
+        // Leave empty to disable webhook push (FCM still works if messages are sent externally)
+        buildConfigField("String", "BACKEND_WEBHOOK_BASE_URL",
+            "\"${localProps.getProperty("BACKEND_WEBHOOK_BASE_URL", "")}\"")
     }
 
     buildTypes {
@@ -139,6 +156,10 @@ dependencies {
 
     // Play Integrity API — device / app attestation
     implementation(libs.play.integrity)
+
+    // Firebase Cloud Messaging — push-triggered calendar refresh (Apache 2.0)
+    // Source: https://github.com/firebase/firebase-android-sdk — Apache 2.0, MIT-compatible
+    implementation(libs.firebase.messaging)
 
     // Tests
     testImplementation(libs.junit)
